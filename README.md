@@ -1,2 +1,2 @@
 # SVF-EclipsePlugin
-Eclipse Plugin of SVF
+Eclipse Plugin for examining bugs reported by SVF-based detectors
