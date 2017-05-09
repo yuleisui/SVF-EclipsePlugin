@@ -1,10 +1,5 @@
 package uafmarker.builder;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,13 +18,22 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.IDocument;
-import org.eclipse.ui.editors.text.TextFileDocumentProvider;
-import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.ui.texteditor.IDocumentProvider;
+import org.eclipse.ui.editors.text.TextFileDocumentProvider;
+
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class SampleBuilder extends IncrementalProjectBuilder {
 
@@ -37,40 +41,106 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		/*
 		 * (non-Javadoc)
 		 * 
-		 * @see org.eclipse.core.resources.IResourceDeltaVisitor#visit(org.eclipse.core.resources.IResourceDelta)
+		 * @see
+		 * org.eclipse.core.resources.IResourceDeltaVisitor#visit(org.eclipse.
+		 * core.resources.IResourceDelta)
 		 */
 		public boolean visit(IResourceDelta delta) throws CoreException {
 			IResource resource = delta.getResource();
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
-				mark(resource);
+				checkXML(resource);
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
-				mark(resource); 
+				checkXML(resource);
 				break;
 			}
-			//return true to continue visiting children.
+			// return true to continue visiting children.
 			return true;
 		}
 	}
 
 	class SampleResourceVisitor implements IResourceVisitor {
 		public boolean visit(IResource resource) {
-			//checkXML(resource); 
 			mark(resource);
-			//return true to continue visiting children.
+			//simpleMark(resource);
+			
+			
+			// checkXML(resource);
+			// return true to continue visiting children.
 			return true;
 		}
 	}
 
-	//not needed anymore
+	///////////////////////////////////////
+
+	void simpleMark(IResource resource) {
+		if (resource instanceof IFile && resource.getName().endsWith(".java")) {
+			IFile file = (IFile) resource;
+			deleteMarkers(file);
+
+			/*
+			 * http://www.vogella.com/tutorials/EclipseCodeAccess/article.html
+			 * org.eclipse.ui.ide.IDE.openEditor(IWorkbenchPage,IMarker);
+			 */
+
+			try {
+				// maybe useful, examples
+				// http://www.programcreek.com/java-api-examples/index.php?api=org.eclipse.ui.texteditor.MarkerUtilities
+
+				// How to get CHAR_START from line number
+				// http://stackoverflow.com/questions/10980082/get-line-number-within-a-eclipse-plugin
+				// How to get IDocument from IFile
+				// http://stackoverflow.com/questions/16896538/eclipse-cdt-ifile-ipath-to-idocument
+				IDocumentProvider provider = new TextFileDocumentProvider();
+				provider.connect(file);
+				IDocument doc = provider.getDocument(file);
+
+				IMarker marker = file.createMarker(MARKER_TYPE);
+				marker.setAttribute(IMarker.MESSAGE, resource.getName());
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+				marker.setAttribute(IMarker.LINE_NUMBER, 10);
+				// marker.setAttribute(IMarker.TEXT, resource.getName()+"text");
+
+				IMarker m2 = file.createMarker(MARKER_TYPE);
+				m2.setAttribute(IMarker.MESSAGE, resource.getName() + " testing 2");
+				m2.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
+				// m2.setAttribute(IMarker.TEXT, resource.getName()+"text");
+				// m2.setAttribute(IMarker.CHAR_START, 1);
+				// m2.setAttribute(IMarker.CHAR_END, 5);
+				m2.setAttribute(IMarker.LINE_NUMBER, 25);
+
+				IMarker m3 = file.createMarker(MARKER_TYPE);
+				m3.setAttribute(IMarker.MESSAGE, resource.getName() + " testing 3");
+				m3.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
+				// m3.setAttribute(IMarker.TEXT, resource.getName()+"text");
+
+				m3.setAttribute(IMarker.CHAR_START, doc.getLineOffset(20));
+				m3.setAttribute(IMarker.CHAR_END, doc.getLineOffset(21) - 1);
+				m3.setAttribute(IMarker.LINE_NUMBER, 20);
+
+				IMarker m6 = file.createMarker(MARKER_TYPE);
+				m6.setAttribute(IMarker.MESSAGE, resource.getName() + " testing 6");
+				m6.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
+				// m6.setAttribute(IMarker.TEXT, resource.getName()+"text");
+				// m6.setAttribute(IMarker.CHAR_START, 0);
+				// m6.setAttribute(IMarker.CHAR_END, 30);
+				m6.setAttribute(IMarker.LINE_NUMBER, 30);
+			} catch (CoreException | BadLocationException e) {
+			}
+
+		}
+	}
+
+	/////////////////////////////////////////////////////
+
 	class XMLErrorHandler extends DefaultHandler {
-		
+
 		private IFile file;
 
 		public XMLErrorHandler(IFile file) {
@@ -78,8 +148,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 
 		private void addMarker(SAXParseException e, int severity) {
-			SampleBuilder.this.addMarker(file, e.getMessage(), e
-					.getLineNumber(), severity);
+			SampleBuilder.this.addMarker(file, e.getMessage(), e.getLineNumber(), severity);
 		}
 
 		public void error(SAXParseException exception) throws SAXException {
@@ -101,8 +170,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 
 	private SAXParserFactory parserFactory;
 
-	private void addMarker(IFile file, String message, int lineNumber,
-			int severity) {
+	private void addMarker(IFile file, String message, int lineNumber, int severity) {
 		try {
 			IMarker marker = file.createMarker(MARKER_TYPE);
 			marker.setAttribute(IMarker.MESSAGE, message);
@@ -119,10 +187,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	 * (non-Javadoc)
 	 * 
 	 * @see org.eclipse.core.internal.events.InternalBuilder#build(int,
-	 *      java.util.Map, org.eclipse.core.runtime.IProgressMonitor)
+	 * java.util.Map, org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	protected IProject[] build(int kind, Map args, IProgressMonitor monitor)
-			throws CoreException {
+	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
 		if (kind == FULL_BUILD) {
 			fullBuild(monitor);
 		} else {
@@ -141,7 +208,6 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		getProject().deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
 	}
 
-	// not needed anymore
 	void checkXML(IResource resource) {
 		if (resource instanceof IFile && resource.getName().endsWith(".xml")) {
 			IFile file = (IFile) resource;
@@ -161,10 +227,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 
-	protected void fullBuild(final IProgressMonitor monitor)
-			throws CoreException {
+	protected void fullBuild(final IProgressMonitor monitor) throws CoreException {
 		try {
-			readInputFromFile();
+			readInputFromFile(); // Hua
 			getProject().accept(new SampleResourceVisitor());
 		} catch (CoreException e) {
 			e.printStackTrace();
@@ -173,24 +238,62 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 
-	private SAXParser getParser() throws ParserConfigurationException,
-			SAXException {
-		if (parserFactory == null) {
-			parserFactory = SAXParserFactory.newInstance();
+	private void readInputFromFile() throws IOException, CoreException { // Hua
+		toMark_UsePoint = new HashMap<String, ArrayList<Integer> >();
+		toMark_FreePoint = new HashMap<String, ArrayList<Integer> >();
+		use2free = new HashMap<String, String>();
+		use2callString = new HashMap<String, String>();
+		use2argPos = new HashMap<String, String>();
+		BufferedReader inputStream = null;
+		try {
+			IFile ifile = this.getProject().getFile("UAF.txt");
+			String fileName = ifile.getLocation().toString();
+			File file = new File(fileName);
+			if(!file.exists())
+				return;
+			inputStream = new BufferedReader(new FileReader(file));
+			String str;
+			while ((str = inputStream.readLine()) != null) {//1 Use_After_Free
+				inputStream.readLine();//2 Use:
+				Integer lineNum = Integer.valueOf(inputStream.readLine())-1;//3 use point line num
+				str = inputStream.readLine();//4 use point file name
+				if(toMark_UsePoint.get(str) == null)
+					toMark_UsePoint.put(str, new ArrayList<Integer>());
+				toMark_UsePoint.get(str).add(lineNum);
+				String usePoint = "" + lineNum + " : " + str;
+				str = inputStream.readLine(); //5 use point file directory
+				//usePoint = usePoint + " dir: " + str;
+				
+				
+				String callString = inputStream.readLine();//6 Call Stack (String)
+				//callString = callString.replaceAll(";;", "<br>");
+				use2callString.put(usePoint,  callString);
+				
+				String argPos = inputStream.readLine();//7 argument position (if call or invoke, otherwise -1)
+				use2argPos.put(usePoint, argPos);
+				
+				inputStream.readLine();//8 Free:
+				lineNum = Integer.valueOf(inputStream.readLine())-1;//9 free point line num
+				str = inputStream.readLine();//10 free point file name
+				if(toMark_FreePoint.get(str) == null)
+					toMark_FreePoint.put(str, new ArrayList<Integer>());
+				toMark_FreePoint.get(str).add(lineNum);
+				String freePoint = "ln: " + lineNum + " fl: " + str;
+				str = inputStream.readLine();//11 free point file directory
+				freePoint = System.getProperty("line.separator") + freePoint + " dir: " + str;
+				use2free.put(usePoint, freePoint);
+			}
+		}catch (FileNotFoundException ex) {
+		    ex.printStackTrace();
+		} finally {
+			if (inputStream != null) {
+				inputStream.close();
+			}
 		}
-		return parserFactory.newSAXParser();
-	}
-
-	protected void incrementalBuild(IResourceDelta delta,
-			IProgressMonitor monitor) throws CoreException {
-		// the visitor does the work.
-		delta.accept(new SampleDeltaVisitor());
 	}
 	
-	//MARKER LOGIC
-	
-	private Map<String, ArrayList<Integer>> toMark_UsePoint; //filename 2 usepoint list
-	private Map<String, ArrayList<Integer>> toMark_FreePoint;//filename 2 freepoint list
+	private Map<String, ArrayList<Integer> > toMark_UsePoint; //filename 2 usepoint list
+	private Map<String, ArrayList<Integer> > toMark_FreePoint;//filename 2 freepoint list
 	private Map<String, String> use2free; //use 2 free
 	private Map<String, String> use2callString; //use 2 call string
 	private Map<String, String> use2argPos; //use 2 argument position
@@ -204,81 +307,6 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		public String fileName;
 		public int lineNum;
 	}
-	
-	
-	private void readInputFromFile() throws IOException, CoreException { // Hua
-		//set up maps
-		toMark_UsePoint = new HashMap<String, ArrayList<Integer> >();
-		toMark_FreePoint = new HashMap<String, ArrayList<Integer> >();
-		use2free = new HashMap<String, String>();
-		use2callString = new HashMap<String, String>();
-		use2argPos = new HashMap<String, String>();
-		
-		//set up reader
-		BufferedReader inputStream = null;
-		try {
-			IFile ifile = this.getProject().getFile("UAF.txt");
-			String fileName = ifile.getLocation().toString();
-			File file = new File(fileName);
-			if(!file.exists())
-				return;
-			inputStream = new BufferedReader(new FileReader(file));
-			String str;
-			
-			//for each line in UAF.txt (loop for each UAF instance)
-			while ((str = inputStream.readLine()) != null) {//1 Use_After_Free
-				//no warning issued
-				if (str.equals("No warning issued.")) {
-					break;
-				}
-				
-				
-				inputStream.readLine();//2 Use:
-				
-				Integer lineNum = Integer.valueOf(inputStream.readLine())-1;//3 use point line num
-				
-				str = inputStream.readLine();//4 use point file name
-				
-				if(toMark_UsePoint.get(str) == null)
-					toMark_UsePoint.put(str, new ArrayList<Integer>());
-				
-				toMark_UsePoint.get(str).add(lineNum);  // key is the file name, array of lines with error
-				
-				String usePoint = "" + lineNum + " : " + str; //str here is the file name (eg: 32 : uc5.c)
-				
-				str = inputStream.readLine(); //5 use point file directory
-				
-				//usePoint = usePoint + " dir: " + str;
-				
-				
-				String callString = inputStream.readLine();//6 Call Stack (String)
-				
-				//callString = callString.replaceAll(";;", "<br>");
-				use2callString.put(usePoint,  callString);
-				
-				String argPos = inputStream.readLine();//7 argument position (if call or invoke, otherwise -1)
-				use2argPos.put(usePoint, argPos);
-				
-				inputStream.readLine();//8 Free:
-				lineNum = Integer.valueOf(inputStream.readLine())-1;//9 free point line num
-				str = inputStream.readLine();//10 free point file name
-				if(toMark_FreePoint.get(str) == null)
-					toMark_FreePoint.put(str, new ArrayList<Integer>());
-				toMark_FreePoint.get(str).add(lineNum);
-				
-				String freePoint = "ln: " + lineNum + " fl: " + str;
-				str = inputStream.readLine();//11 free point file directory
-				freePoint = System.getProperty("line.separator") + freePoint + " dir: " + str;
-				use2free.put(usePoint, freePoint);
-			}
-		}catch (FileNotFoundException ex) {
-		    ex.printStackTrace();
-		} finally {
-			if (inputStream != null) {
-				inputStream.close();
-			}
-		}
-	}	
 	
 	void mark(IResource resource) {
 		if(!(resource instanceof IFile)) return;
@@ -341,5 +369,17 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			} catch (CoreException | BadLocationException e) {
 			}
 		}
+	}
+	
+	private SAXParser getParser() throws ParserConfigurationException, SAXException {
+		if (parserFactory == null) {
+			parserFactory = SAXParserFactory.newInstance();
+		}
+		return parserFactory.newSAXParser();
+	}
+
+	protected void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
+		// the visitor does the work.
+		delta.accept(new SampleDeltaVisitor());
 	}
 }

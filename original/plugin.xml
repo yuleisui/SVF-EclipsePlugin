@@ -100,6 +100,9 @@
       <super
             type="org.eclipse.core.resources.problemmarker">
       </super>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
       <persistent
             value="true">
       </persistent>
@@ -108,23 +111,22 @@
          point="org.eclipse.ui.editors.annotationTypes">
       <type
             markerType="uafmarker.xmlProblem"
-            name="uafmarker.type2">
+            name="xml Problem">
       </type>
    </extension>
    <extension
          point="org.eclipse.ui.editors.markerAnnotationSpecification">
       <specification
-            annotationType="uafmarker.type2"
+            annotationType="xml Problem"
             colorPreferenceKey="xmlProblem.color"
             colorPreferenceValue="192,255,192"
-            contributesToHeader="true"
+            contributesToHeader="false"
             highlightPreferenceKey="xmlProblem.highlight"
             highlightPreferenceValue="true"
             includeOnPreferencePage="true"
-            isGoToPreviousNavigationTarget="true"
-            label="UAFMarker"
+            label="UAF marker"
             overviewRulerPreferenceKey="xmlProblem.overview"
-            overviewRulerPreferenceValue="true"
+            overviewRulerPreferenceValue="false"
             presentationLayer="0"
             textPreferenceKey="xmlProblem.text"
             textPreferenceValue="true"
