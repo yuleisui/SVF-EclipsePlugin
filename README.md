@@ -29,19 +29,21 @@ Below is the usage of UAF-Marker.
 * Close Eclipse
 * Copy from plugins uafmarker_1.0.0.201705100246.jar to your_eclipse_dir/dropins directory.
 * In your project directory, open up the .project file and add the following:
-    
-    <buildSpec>
-        <!-- Other, existing builders for your project -->
-        <buildCommand>
-            <name>uafmarker.sampleBuilder</name>
-            <arguments>
-            </arguments>
-        </buildCommand>
-    </buildSpec>
-    <natures>
-        <!-- Other, existing natures for your project -->
-        <nature>uafmarker.sampleNature</nature>
-    </natures>
+
+```
+<buildSpec>
+    <!-- Other, existing builders for your project -->
+    <buildCommand>
+        <name>uafmarker.sampleBuilder</name>
+        <arguments>
+        </arguments>
+    </buildCommand>
+</buildSpec>
+<natures>
+    <!-- Other, existing natures for your project -->
+    <nature>uafmarker.sampleNature</nature>
+</natures>
+```
 3. Use UAF-Marker
 * UAF Marker should work right away. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it. 
 * If configured correctly, when you right click the project name, you should be able to disable/enable the Sample Builder under Configure
