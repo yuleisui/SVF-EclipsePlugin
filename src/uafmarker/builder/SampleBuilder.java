@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -226,50 +228,63 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			String str;
 			
 			//for each line in UAF.txt (loop for each UAF instance)
-			while ((str = inputStream.readLine()) != null) {//1 Use_After_Free
+			while ((str = inputStream.readLine()) != null) {//1 ## Use_After_Free ## ....
 				//no warning issued
 				if (str.equals("No warning issued.")) {
 					break;
 				}
 				
+				//no new Use After Free
+				if(!str.contains("## Use_After_Free")) {
+					continue; 
+				}
 				
-				inputStream.readLine();//2 Use:
-				
-				Integer lineNum = Integer.valueOf(inputStream.readLine())-1;//3 use point line num
-				
-				str = inputStream.readLine();//4 use point file name
-				
+				//## Use....
+				inputStream.readLine();//2 
+				//line: 32
+				Integer lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""))-1;//3 use point line num
+				//file: ./benchmark/useCorrelation/uc5.c
+				String tmp[] = inputStream.readLine().split("/");//4 use point file name
+				str = tmp[tmp.length -1];
 				if(toMark_UsePoint.get(str) == null)
 					toMark_UsePoint.put(str, new ArrayList<Integer>());
 				
 				toMark_UsePoint.get(str).add(lineNum);  // key is the file name, array of lines with error
 				
 				String usePoint = "" + lineNum + " : " + str; //str here is the file name (eg: 32 : uc5.c)
-				
-				str = inputStream.readLine(); //5 use point file directory
+				//dir : /home/stc/stc/test/testMicroBenchmark
+				str = inputStream.readLine().replaceFirst("dir : ", ""); //5 use point file directory
 				
 				//usePoint = usePoint + " dir: " + str;
 				
-				
-				String callString = inputStream.readLine();//6 Call Stack (String)
+				//CXT : ==>sch(ln: 32)  ==> $$$
+				String callString = inputStream.readLine().replaceFirst("CXT :", "");//6 Call Stack (String)
 				
 				//callString = callString.replaceAll(";;", "<br>");
 				use2callString.put(usePoint,  callString);
 				
-				String argPos = inputStream.readLine();//7 argument position (if call or invoke, otherwise -1)
+				//Arg Pos: -1
+				String argPos = inputStream.readLine().replaceFirst("Arg Pos: ", "");//7 argument position (if call or invoke, otherwise -1)
 				use2argPos.put(usePoint, argPos);
 				
-				inputStream.readLine();//8 Free:
-				lineNum = Integer.valueOf(inputStream.readLine())-1;//9 free point line num
-				str = inputStream.readLine();//10 free point file name
+				inputStream.readLine();//8 ## Use....
+				inputStream.readLine();//9 ## Free....
+				//line: 5
+				lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""))-1;//10 free point line num
+				//file: ./benchmark/useCorrelation/uc5.c
+				tmp = inputStream.readLine().split("/");//11 free point file name
+				str = tmp[tmp.length -1];
 				if(toMark_FreePoint.get(str) == null)
 					toMark_FreePoint.put(str, new ArrayList<Integer>());
 				toMark_FreePoint.get(str).add(lineNum);
-				
 				String freePoint = "ln: " + lineNum + " fl: " + str;
-				str = inputStream.readLine();//11 free point file directory
+				//dir : /home/stc/stc/test/testMicroBenchmark
+				str = inputStream.readLine().replaceFirst("dir : ", "");//12 free point file directory
 				freePoint = System.getProperty("line.separator") + freePoint + " dir: " + str;
 				use2free.put(usePoint, freePoint);
+				inputStream.readLine();//13 ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
+				inputStream.readLine();//14 ## ## Free ############ }
+				inputStream.readLine();//15 ## ## Use_After_Free ## 1 ## }
 			}
 		}catch (FileNotFoundException ex) {
 		    ex.printStackTrace();
@@ -301,15 +316,19 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					mesg = mesg + use2free.get("" + i + " : " + fileName) + System.getProperty("line.separator");
 					mesg = mesg + "Argument Position (for callInst): " + use2argPos.get("" + i + " : " + fileName) + System.getProperty("line.separator");
 					mesg = mesg + "CallString:" + System.getProperty("line.separator");
-					String[] callString = use2callString.get("" + i + " : " + fileName).split(";;");
+					String[] callString = use2callString.get("" + i + " : " + fileName).split("==>");
 					for(int j = 0; j < callString.length; j++){
-						if(j ==0)
-							callString[j] = callString[j].replace("CALL"  , "Free__in___Function:  ");
-						if(callString[j].contains("CALL"))
-							callString[j] = callString[j].replace("CALL"  , "Call_______Function:  ");
-						if(callString[j].contains("RET_TO"))
-							callString[j] = callString[j].replace("RET_TO", "Return_to_Function:  ");
-						callString[j] = callString[j].replace('=', ' ');
+//						if(j ==0)
+//							callString[j] = callString[j].replace("CALL"  , "Free__in___Function:  ");
+//						if(callString[j].contains("CALL"))
+//							callString[j] = callString[j].replace("CALL"  , "Call_______Function:  ");
+//						if(callString[j].contains("RET_TO"))
+//							callString[j] = callString[j].replace("RET_TO", "Return_to_Function:  ");
+//						callString[j] = callString[j].replace('=', ' ');
+						if(j == 0) continue;
+						callString[j] = callString[j].trim();
+						if(callString[j].contains("$$$"))
+							break;
 						mesg = mesg + j + ": "+ callString[j] + System.getProperty("line.separator");
 					}
 					System.out.println("" + i + " : " + fileName);
