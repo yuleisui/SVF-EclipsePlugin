@@ -26,23 +26,41 @@ CXT : ==>main(ln: 9)  ==> $$$
 ## Free ############ }
 ## Use_After_Free ## 1 ## }
 ```
-Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the tag of the start of a use after free, the next 7 lines are the inforamtion about the use point, after which the next following 6 lines are the information about the associated free point, followed by an ending tag to mark the end of that use after free. 
+Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the tag of the start of a use after free, the next 7 lines are the information about the use point, after which the next following 6 lines are the information about the associated free point, followed by an ending tag to mark the end of that use after free. 
 
 ## Usage
 1. Create your C/C++ project
 * Launch Eclipse CPP
-* Create a new project and add existing code/project that is being tested to the project
-* Copy UAF.txt to the directory of the project
-* To activate the plugin, right click on the project name, and activate/deactive the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. 
+* Create a new C/C++ project and add the existing code/project that is being tested to the project
+* Copy UAF.txt to the root directory of the project
+* To activate the plugin, right click on the project name, and activate/deactivate the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. This has to be done for every project that the plugin is intended to run in. 
 ![alt text](/Screenshots/Capture1.JPG?raw=true "Screenshot 1")
 Note: First time activation of plugins may result in Eclipse throwing a workspace building error (Java Null Exception). If this happens just disable and enable it again to overcome the error. 
 
-2. Using UAF-Marker
-* If you already have UAF.txt and the relevent files in the project, UAF Marker should work right away after activiation. This can be check by checking if markers are being placed in the workspace. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it, or disable and enable the plugin again. 
-* Now you can see where the use-after-free bugs are in the problem panel of eclipse and jump to where the bugs in the code are by double clicking on the markers in the problem panel of Ecclipseview by clicking them.
-* To view the UAF proble
+2. Using UAF Markers
+* UAF Marker should work right away after activation. This can be checked by checking if markers are being placed in the workspace. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it, cleaning it, or disable and enable the plugin again. 
+* The UAF bugs can be identified using the markers that the plugin creates. All markers can be seen in the problems panel of eclipse, and to jump to where the bugs are in the code, double click on the corresponding marker(s).
+
+3. Modify the Problems Panel **(Recommended)**
+* The markers can be sorted and grouped based on which bug they are related to. To do this, under the options of the problems view (accessible through the triangle shaped button circled in red in the picture below), select to group by UAF Issues. The markers will then be grouped by issues, as shown below. 
+![alt text](/Screenshots/Capture2.JPG?raw=true "Screenshot 2")
+This view will help with the identification and classification of markers. 
+* Each group will have an Use Point and a Free Point, making up the UAF pair. Some UAF bugs will have call stack information, explained below. 
+
+4. Call Stack Following
+* This plugin supports call stack following, with the call stack input from the CXT field in UAF.txt. Call stack information is displayed as shown in the picture below.
+![alt text](/Screenshots/Capture3.JPG?raw=true "Screenshot 3")
+* In the picture we can see that both the use point and free point has a call stack. The call stack can be ordered in order of occurrence by sorting the markers by "Description". The call stack start with call stack 1 all the way to the highest call stack (in this case call stack 3), before reaching either the free or use point.  
+
+5. Removing Markers from Other Open Projects
+* If you have other markers existing in the workspace that are from other open projects, you can remove them temporarily by closing all other projects, to only see the markers from the project currently being worked on. 
 
 ## Troubleshooting
+### Marker are missing/at incorrect positions/not updating
+Try to refresh the project or force a build by changing a small part of the project and saving it, or by cleaning it and manually invoking build project. If that does not work, try to disable, then enable your the Simple Builder under the configure menu a few times. Otherwise, exit Eclipse and reinstall the plugin using the installation instructions above. If all fails,
+re-export the plugin using your own machine with the instructions below. 
+
+### Disable/Enable option missing from Configure menu
 If right clicking on the project name does not show the disable/enable the Sample Builder option under Configure, you can manually configure your project by going to your project directory and editing the .project file to add the following:
 
 ```
@@ -65,6 +83,6 @@ If the above does not work, check the project properties by right clicking on th
 
 To recreate the project/edit the project:
 1. Download and launch Eclipse RCP
-2. Import the project from this repo into your workspace
+2. Import the project from this repository into your workspace
 3. To test your changes, run as an Eclipse application and create your projects with the necessary files in the Eclipse environment that appears. You should be able to enable/disable the plugin in the testing environment through the Configure option that is available when you right click the project name. 
 4. To export your plugin, right click on your project name, go to export, as deployable plugin, and export. Install and use as specified above
