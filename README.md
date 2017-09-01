@@ -34,10 +34,13 @@ Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the ta
 * Create a new project and add existing code/project that is being tested to the project
 * Copy UAF.txt to the directory of the project
 * To activate the plugin, right click on the project name, and activate/deactive the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. 
+![alt text](/Screenshots/Capture1.JPG?raw=true "Screenshot 1")
+Note: First time activation of plugins may result in Eclipse throwing a workspace building error (Java Null Exception). If this happens just disable and enable it again to overcome the error. 
 
-2. Use UAF-Marker
-* UAF Marker should work right away. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it. 
-* Now you can see where the use-after-free bugs are in the problem panel of eclipse and track the bugs in the code view by clicking them.
+2. Using UAF-Marker
+* If you already have UAF.txt and the relevent files in the project, UAF Marker should work right away after activiation. This can be check by checking if markers are being placed in the workspace. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it, or disable and enable the plugin again. 
+* Now you can see where the use-after-free bugs are in the problem panel of eclipse and jump to where the bugs in the code are by double clicking on the markers in the problem panel of Ecclipseview by clicking them.
+* To view the UAF proble
 
 ## Troubleshooting
 If right clicking on the project name does not show the disable/enable the Sample Builder option under Configure, you can manually configure your project by going to your project directory and editing the .project file to add the following:
