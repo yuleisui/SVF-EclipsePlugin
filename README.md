@@ -1,8 +1,11 @@
 # SVF-EclipsePlugin
-**This readme file is to be updated soon**
+
 This is an Eclipse Plugin for examining bugs reported by [SVF](https://github.com/unsw-corg/SVF/)-based detectors.
 
 To confirm or fix a bug reported by detectors, one needs to first examine it. This process is usually difficult in large projects because a bug may involve multiple lines of code scattered in different files. To make this process easier, we implemented a tool called UAF-Marker for bug-detectors based on SVF. UAF-Marker, which is a simple Eclipse plugin, targets at use-after-free bugs. Specifically, it takes Eclipse as a code viewer and uses markers and colors to highlight the potential buggy code lines so that the user can clearly see the bugs.
+
+## Installation
+Copy from the plugins folder the jar file uafmarker_1.0.0.<version_number>.jar to your *eclipseCPP_installation_dir/dropins* directory.
 
 ## Requirement
 To display the bugs found by detectors, UAF-Marker requires a file named UAF.txt as input for the plugin, placed in the root of the project directory (see **Usage** for more detailed instructions). The format of UAF.txt is as output by the SVF tool, as follows.
@@ -25,15 +28,14 @@ CXT : ==>main(ln: 9)  ==> $$$
 ```
 Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the tag of the start of a use after free, the next 7 lines are the inforamtion about the use point, after which the next following 6 lines are the information about the associated free point, followed by an ending tag to mark the end of that use after free. 
 
-## Installation
-Copy from the plugins folder the jar file uafmarker_1.0.0.<version_number>.jar to your *eclipseCPP_installation_dir/dropins* directory.
-
 ## Usage
-1. Create your project
+1. Create your C/C++ project
 * Launch Eclipse CPP
 * Create a new project and add existing code/project that is being tested to the project
 * Copy UAF.txt to the directory of the project
-* Right click on the project name, you should now be able to disable/enable the Sample Builder under Configure for any project
+* To activate the plugin, right click on the project name, and activate/deactive the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. 
+![Alt text](/Screenshots/Capture1.jpg?raw=true)
+
 2. Use UAF-Marker
 * UAF Marker should work right away. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it. 
 * Now you can see where the use-after-free bugs are in the problem panel of eclipse and track the bugs in the code view by clicking them.
