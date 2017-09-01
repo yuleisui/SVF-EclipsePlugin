@@ -317,7 +317,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
 						
 						IMarker tmp = file.createMarker(MARKER_TYPE_USE_STRING);
-						String tmpMsg = "Use Point Call String " + j + System.getProperty("line.separator")+ System.getProperty("line.separator");
+						String tmpMsg = "Use Point Call Stack " + j + System.getProperty("line.separator");
 						tmpMsg += "For the use point of issue " + IssueID + " at line " + i;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
@@ -368,7 +368,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
 						
 						IMarker tmp = file.createMarker(MARKER_TYPE_FREE_STRING);
-						String tmpMsg = "Free Point Call String " + j + System.getProperty("line.separator")+ System.getProperty("line.separator");
+						String tmpMsg = "Free Point Call Stack " + j + System.getProperty("line.separator");
 						tmpMsg += "For the free point of issue " + IssueID + " at line " + i;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);

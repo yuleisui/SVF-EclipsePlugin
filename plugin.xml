@@ -117,7 +117,7 @@
    </extension>
    <extension
          id="usePointCallString"
-         name="Use Point Call String"
+         name="Use Point Call Stack"
          point="org.eclipse.core.resources.markers">
       <super
             type="org.eclipse.core.resources.problemmarker">
@@ -128,7 +128,7 @@
    </extension>
    <extension
          id="freePointCallString"
-         name="Free Point Call String"
+         name="Free Point Call Stack"
          point="org.eclipse.core.resources.markers">
       <super
             type="org.eclipse.core.resources.problemmarker">
@@ -213,7 +213,7 @@
             highlightPreferenceValue="true"
             includeOnPreferencePage="true"
             isGoToPreviousNavigationTarget="true"
-            label="Use Point Call String"
+            label="Use Point Call Stack"
             overviewRulerPreferenceKey="usePointCallString.overview"
             overviewRulerPreferenceValue="true"
             presentationLayer="0"
@@ -242,7 +242,7 @@
             highlightPreferenceValue="true"
             includeOnPreferencePage="true"
             isGoToPreviousNavigationTarget="true"
-            label="Free Point Call String"
+            label="Free Point Call Stack"
             overviewRulerPreferenceKey="freePointCallString.overview"
             overviewRulerPreferenceValue="true"
             presentationLayer="0"
