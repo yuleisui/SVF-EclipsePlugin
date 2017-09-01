@@ -35,7 +35,7 @@ Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the ta
 * Copy UAF.txt to the root directory of the project
 * To activate the plugin, right click on the project name, and activate/deactivate the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. This has to be done for every project that the plugin is intended to run in. 
 ![alt text](/Screenshots/Capture1.JPG?raw=true "Screenshot 1")
-Note: First time activation of plugins may result in Eclipse throwing a workspace building error (Java Null Exception). If this happens just disable and enable it again to overcome the error. 
+**Note**: First time activation of plugins may result in Eclipse throwing a workspace building error (Java Null Exception). If this happens just disable and enable it again to overcome the error. 
 
 2. Using UAF Markers
 * UAF Marker should work right away after activation. This can be checked by checking if markers are being placed in the workspace. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it, cleaning it, or disable and enable the plugin again. 
@@ -51,6 +51,7 @@ This view will help with the identification and classification of markers.
 * This plugin supports call stack following, with the call stack input from the CXT field in UAF.txt. Call stack information is displayed as shown in the picture below.
 ![alt text](/Screenshots/Capture3.JPG?raw=true "Screenshot 3")
 * In the picture we can see that both the use point and free point has a call stack. The call stack can be ordered in order of occurrence by sorting the markers by "Description". The call stack start with call stack 1 all the way to the highest call stack (in this case call stack 3), before reaching either the free or use point.  
+* **Note**: Call stack functionality currently only works for cases where the CXT string provided by UAF.txt only references lines in the same file as the UAF points. Call stack functionality to allow for following between multiple files is currently in the works. 
 
 5. Removing Markers from Other Open Projects
 * If you have other markers existing in the workspace that are from other open projects, you can remove them temporarily by closing all other projects, to only see the markers from the project currently being worked on. 
