@@ -8,13 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -29,12 +22,10 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.editors.text.TextFileDocumentProvider;
 import org.eclipse.ui.texteditor.IDocumentProvider;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
 
 public class SampleBuilder extends IncrementalProjectBuilder {
 
+	//called in incremental build
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
 		/*
 		 * (non-Javadoc)
@@ -61,6 +52,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 
+	//called in full build
 	class SampleResourceVisitor implements IResourceVisitor {
 		public boolean visit(IResource resource) {
 			//checkXML(resource); 
@@ -70,52 +62,15 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 
-	//not needed anymore
-	class XMLErrorHandler extends DefaultHandler {
-		
-		private IFile file;
-
-		public XMLErrorHandler(IFile file) {
-			this.file = file;
-		}
-
-		private void addMarker(SAXParseException e, int severity) {
-			SampleBuilder.this.addMarker(file, e.getMessage(), e
-					.getLineNumber(), severity);
-		}
-
-		public void error(SAXParseException exception) throws SAXException {
-			addMarker(exception, IMarker.SEVERITY_ERROR);
-		}
-
-		public void fatalError(SAXParseException exception) throws SAXException {
-			addMarker(exception, IMarker.SEVERITY_ERROR);
-		}
-
-		public void warning(SAXParseException exception) throws SAXException {
-			addMarker(exception, IMarker.SEVERITY_WARNING);
-		}
-	}
-
 	public static final String BUILDER_ID = "uafmarker.sampleBuilder";
 
-	private static final String MARKER_TYPE = "uafmarker.xmlProblem";
-
-	private SAXParserFactory parserFactory;
-
-	private void addMarker(IFile file, String message, int lineNumber,
-			int severity) {
-		try {
-			IMarker marker = file.createMarker(MARKER_TYPE);
-			marker.setAttribute(IMarker.MESSAGE, message);
-			marker.setAttribute(IMarker.SEVERITY, severity);
-			if (lineNumber == -1) {
-				lineNumber = 1;
-			}
-			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
-		} catch (CoreException e) {
-		}
-	}
+	private static final String MARKER_TYPE_USE = "uafmarker.usePoint";
+	
+	private static final String MARKER_TYPE_FREE = "uafmarker.freePoint";
+	
+	private static final String MARKER_TYPE_USE_STRING = "uafmarker.usePointCallString";
+	
+	private static final String MARKER_TYPE_FREE_STRING = "uafmarker.freePointCallString";
 
 	/*
 	 * (non-Javadoc)
@@ -123,6 +78,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	 * @see org.eclipse.core.internal.events.InternalBuilder#build(int,
 	 *      java.util.Map, org.eclipse.core.runtime.IProgressMonitor)
 	 */
+	//build options
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor)
 			throws CoreException {
 		if (kind == FULL_BUILD) {
@@ -140,25 +96,18 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 
 	protected void clean(IProgressMonitor monitor) throws CoreException {
 		// delete markers set and files created
-		getProject().deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
-	}
-
-	// not needed anymore
-	void checkXML(IResource resource) {
-		if (resource instanceof IFile && resource.getName().endsWith(".xml")) {
-			IFile file = (IFile) resource;
-			deleteMarkers(file);
-			XMLErrorHandler reporter = new XMLErrorHandler(file);
-			try {
-				getParser().parse(file.getContents(), reporter);
-			} catch (Exception e1) {
-			}
-		}
+		getProject().deleteMarkers(MARKER_TYPE_USE, true, IResource.DEPTH_INFINITE);
+		getProject().deleteMarkers(MARKER_TYPE_FREE, true, IResource.DEPTH_INFINITE);
+		getProject().deleteMarkers(MARKER_TYPE_USE_STRING, true, IResource.DEPTH_INFINITE);
+		getProject().deleteMarkers(MARKER_TYPE_FREE_STRING, true, IResource.DEPTH_INFINITE);
 	}
 
 	private void deleteMarkers(IFile file) {
 		try {
-			file.deleteMarkers(MARKER_TYPE, false, IResource.DEPTH_ZERO);
+			file.deleteMarkers(MARKER_TYPE_USE, false, IResource.DEPTH_ZERO);
+			file.deleteMarkers(MARKER_TYPE_FREE, false, IResource.DEPTH_ZERO);
+			file.deleteMarkers(MARKER_TYPE_USE_STRING, false, IResource.DEPTH_ZERO);
+			file.deleteMarkers(MARKER_TYPE_FREE_STRING, false, IResource.DEPTH_ZERO);
 		} catch (CoreException ce) {
 		}
 	}
@@ -174,40 +123,26 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			e.printStackTrace();
 		}
 	}
-
-	private SAXParser getParser() throws ParserConfigurationException,
-			SAXException {
-		if (parserFactory == null) {
-			parserFactory = SAXParserFactory.newInstance();
-		}
-		return parserFactory.newSAXParser();
-	}
-
+	
 	protected void incrementalBuild(IResourceDelta delta,
 			IProgressMonitor monitor) throws CoreException {
 		// the visitor does the work.
 		delta.accept(new SampleDeltaVisitor());
 	}
-	
+
 	//MARKER LOGIC
-	
+
 	private Map<String, ArrayList<Integer>> toMark_UsePoint; //filename 2 usepoint list
 	private Map<String, ArrayList<Integer>> toMark_FreePoint;//filename 2 freepoint list
 	private Map<String, String> use2free; //use 2 free
 	private Map<String, String> use2callString; //use 2 call string
 	private Map<String, String> use2argPos; //use 2 argument position
-	
-	class Loc{
-		public Loc(){}
-		public Loc(String fileName, int lineNum){
-			this.fileName = fileName;
-			this.lineNum = lineNum;
-		}
-		public String fileName;
-		public int lineNum;
-	}
-	
-	
+	private Map<String, String> free2use; //free2use
+	private Map<String, String> free2callString; //free 2 call string
+	private Map<String, Integer> use2id;
+	private Map<String, Integer> free2id;
+
+	//read the uaf txt
 	private void readInputFromFile() throws IOException, CoreException { // Hua
 		//set up maps
 		toMark_UsePoint = new HashMap<String, ArrayList<Integer> >();
@@ -215,147 +150,240 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		use2free = new HashMap<String, String>();
 		use2callString = new HashMap<String, String>();
 		use2argPos = new HashMap<String, String>();
-		
+		free2use = new HashMap<String, String>();
+		free2callString = new HashMap<String, String>();
+		use2id = new HashMap<String, Integer>();
+		free2id = new HashMap<String, Integer>();
+
 		//set up reader
 		BufferedReader inputStream = null;
 		try {
+			//get file and open file stream
 			IFile ifile = this.getProject().getFile("UAF.txt");
 			String fileName = ifile.getLocation().toString();
 			File file = new File(fileName);
 			if(!file.exists())
 				return;
 			inputStream = new BufferedReader(new FileReader(file));
+			
 			String str;
+			int issueID = 1;
 			
 			//for each line in UAF.txt (loop for each UAF instance)
-			while ((str = inputStream.readLine()) != null) {//1 ## Use_After_Free ## ....
+			//read the first line here
+			//1: ## Use_After_Free ## ....
+			while ((str = inputStream.readLine()) != null) {
 				//no warning issued
 				if (str.equals("No warning issued.")) {
 					break;
 				}
-				
-				//no new Use After Free
+
+				//no new Use After Free (white space checking)
 				if(!str.contains("## Use_After_Free")) {
 					continue; 
 				}
-				
+
+				//2: Use point header 
 				//## Use....
-				inputStream.readLine();//2 
+				inputStream.readLine(); 
+				
+				//3: line number
 				//line: 32
-				Integer lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""))-1;//3 use point line num
+				Integer lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""));
+				
+				//4: file name
 				//file: ./benchmark/useCorrelation/uc5.c
-				String tmp[] = inputStream.readLine().split("/");//4 use point file name
-				str = tmp[tmp.length -1];
+				String tmp[] = inputStream.readLine().split("/");
+				str = tmp[tmp.length -1]; //file name is last token
+				
 				if(toMark_UsePoint.get(str) == null)
+					//if file is not in the map yet, add to map
 					toMark_UsePoint.put(str, new ArrayList<Integer>());
+
+				// the value with the file name as the key is an array with the lines at which there are use points
+				toMark_UsePoint.get(str).add(lineNum);  
+
+				//unique identifier for this use point (eg: 32 : uc5.c)
+				String usePoint = "" + lineNum + " : " + str; //str here is the file name 
 				
-				toMark_UsePoint.get(str).add(lineNum);  // key is the file name, array of lines with error
+				String usePointInfo = str + ", line nuber: " + lineNum;
 				
-				String usePoint = "" + lineNum + " : " + str; //str here is the file name (eg: 32 : uc5.c)
+				//6: Directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", ""); //5 use point file directory
 				
-				//usePoint = usePoint + " dir: " + str;
-				
+				usePointInfo = System.getProperty("line.separator") + usePointInfo + System.getProperty("line.separator")+"File Directory: " + str;
+
+				//7: Call Stack String
 				//CXT : ==>sch(ln: 32)  ==> $$$
-				String callString = inputStream.readLine().replaceFirst("CXT :", "");//6 Call Stack (String)
-				
-				//callString = callString.replaceAll(";;", "<br>");
+				String callString = inputStream.readLine().replaceFirst("CXT :", "");
+
 				use2callString.put(usePoint,  callString);
-				
+
+				//8: Argument Position (no idea what this means tbh)
 				//Arg Pos: -1
-				String argPos = inputStream.readLine().replaceFirst("Arg Pos: ", "");//7 argument position (if call or invoke, otherwise -1)
+				String argPos = inputStream.readLine().replaceFirst("Arg Pos: ", "");//argument position (if call or invoke, otherwise -1)
 				use2argPos.put(usePoint, argPos);
+
+				//headers
+				inputStream.readLine();//9 ## Use....
+				inputStream.readLine();//10 ## Free....
 				
-				inputStream.readLine();//8 ## Use....
-				inputStream.readLine();//9 ## Free....
+				//11: Free point line number
 				//line: 5
-				lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""))-1;//10 free point line num
+				lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""));//10 free point line num
+				
+				//12: Free point file name
 				//file: ./benchmark/useCorrelation/uc5.c
-				tmp = inputStream.readLine().split("/");//11 free point file name
+				tmp = inputStream.readLine().split("/");
 				str = tmp[tmp.length -1];
 				if(toMark_FreePoint.get(str) == null)
 					toMark_FreePoint.put(str, new ArrayList<Integer>());
 				toMark_FreePoint.get(str).add(lineNum);
-				String freePoint = "ln: " + lineNum + " fl: " + str;
+				
+				//free point unique identifier
+				String freePoint = lineNum + " : " + str;
+				
+				//free point information
+				String freePointInfo = str + ", line number: " + lineNum;
+				
+				//13: Free point directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", "");//12 free point file directory
-				freePoint = System.getProperty("line.separator") + freePoint + " dir: " + str;
-				use2free.put(usePoint, freePoint);
-				inputStream.readLine();//13 ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
+				
+				freePointInfo = System.getProperty("line.separator") + freePointInfo + System.getProperty("line.separator")+"File Directory: " + str;
+				use2free.put(usePoint, freePointInfo);
+				free2use.put(freePoint,  usePointInfo);
+				
+				//14: free point call string
+				// ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
+				callString = inputStream.readLine().replaceFirst("CXT :", "");
+				free2callString.put(freePoint,  callString);
+				
 				inputStream.readLine();//14 ## ## Free ############ }
 				inputStream.readLine();//15 ## ## Use_After_Free ## 1 ## }
+				
+				use2id.put(usePoint, issueID);
+				free2id.put(freePoint, issueID);
+				issueID++;
 			}
 		}catch (FileNotFoundException ex) {
-		    ex.printStackTrace();
+			ex.printStackTrace();
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
 			}
 		}
 	}	
-	
+
+	//use info to mark stuff
 	void mark(IResource resource) {
 		if(!(resource instanceof IFile)) return;
 		IFile file = (IFile) resource;
 		deleteMarkers(file);
-		
+
 		String fileName = resource.getName();//.getLocationURI().toString();
 		System.out.println(fileName);
+		
+		//use point marking
 		if(resource instanceof IFile && toMark_UsePoint.containsKey(fileName)){
 			//deleteMarkers(file);
 			try {
 				IDocumentProvider provider = new TextFileDocumentProvider();
 				provider.connect(file);
 				IDocument doc = provider.getDocument(file);
-
 				for(Integer i:toMark_UsePoint.get(fileName)){
-					IMarker marker = file.createMarker(MARKER_TYPE);
-					String mesg = "Use Point (Use_After_Free) "+ System.getProperty("line.separator");
-					mesg = mesg + " Free Point @ : ";
-					mesg = mesg + use2free.get("" + i + " : " + fileName) + System.getProperty("line.separator");
+					int IssueID = use2id.get("" + i + " : " + fileName);
+					
+					String mesg = "Use Point"+ System.getProperty("line.separator")+ System.getProperty("line.separator");
+					mesg = mesg + "Free Point at : ";
+					mesg = mesg + use2free.get("" + i + " : " + fileName) + System.getProperty("line.separator")+ System.getProperty("line.separator");
 					mesg = mesg + "Argument Position (for callInst): " + use2argPos.get("" + i + " : " + fileName) + System.getProperty("line.separator");
 					mesg = mesg + "CallString:" + System.getProperty("line.separator");
+					
 					String[] callString = use2callString.get("" + i + " : " + fileName).split("==>");
 					for(int j = 0; j < callString.length; j++){
-//						if(j ==0)
-//							callString[j] = callString[j].replace("CALL"  , "Free__in___Function:  ");
-//						if(callString[j].contains("CALL"))
-//							callString[j] = callString[j].replace("CALL"  , "Call_______Function:  ");
-//						if(callString[j].contains("RET_TO"))
-//							callString[j] = callString[j].replace("RET_TO", "Return_to_Function:  ");
-//						callString[j] = callString[j].replace('=', ' ');
 						if(j == 0) continue;
+						
 						callString[j] = callString[j].trim();
-						if(callString[j].contains("$$$"))
+						
+						if(callString[j+1].contains("$$$"))
 							break;
+						
 						mesg = mesg + j + ": "+ callString[j] + System.getProperty("line.separator");
+						
+						String[] lineNumArry = callString[j].split(" ");
+						String line = lineNumArry[lineNumArry.length -1];
+						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
+						
+						IMarker tmp = file.createMarker(MARKER_TYPE_USE_STRING);
+						String tmpMsg = "Use Point Call String " + j + System.getProperty("line.separator")+ System.getProperty("line.separator");
+						tmpMsg += "For the use point of issue " + IssueID + " at line " + i;
+						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
+						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
+						tmp.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNum)-1);
+						tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						tmp.setAttribute("IssueID", IssueID);
 					}
-					System.out.println("" + i + " : " + fileName);
+					IMarker marker = file.createMarker(MARKER_TYPE_USE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
 					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()));
-					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue()+1)-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue());
+					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()-1));
+					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue())-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue()-1);
+					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
 			}
 		}
 		
+		//free point marking
 		if(resource instanceof IFile && toMark_FreePoint.containsKey(fileName)){
 			//deleteMarkers(file);
 			try {
 				IDocumentProvider provider = new TextFileDocumentProvider();
 				provider.connect(file);
 				IDocument doc = provider.getDocument(file);
-
 				for(Integer i:toMark_FreePoint.get(fileName)){
-					IMarker marker = file.createMarker(MARKER_TYPE);
-					marker.setAttribute(IMarker.MESSAGE, "Free Point (Use_After_Free)");
-					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
-					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()));
-					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue()+1)-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue());
+					int IssueID = free2id.get("" + i + " : " + fileName);
+
+					String mesg = "Free Point"+ System.getProperty("line.separator")+ System.getProperty("line.separator");
+					mesg = mesg + "Use Point at : ";
+					mesg = mesg + free2use.get("" + i + " : " + fileName) + System.getProperty("line.separator")+ System.getProperty("line.separator");
+					mesg = mesg + "CallString:" + System.getProperty("line.separator");
+					
+					String[] callString = free2callString.get("" + i + " : " + fileName).split("==>");
+					for(int j = 0; j < callString.length; j++){
+						if(j == 0) continue;
+						
+						callString[j] = callString[j].trim();
+						if(callString[j+1].contains("$$$"))
+							break;
+						
+						mesg = mesg + j + ": "+ callString[j] + System.getProperty("line.separator");
+						
+						String[] lineNumArry = callString[j].split(" ");
+						String line = lineNumArry[lineNumArry.length -1];
+						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
+						
+						IMarker tmp = file.createMarker(MARKER_TYPE_FREE_STRING);
+						String tmpMsg = "Free Point Call String " + j + System.getProperty("line.separator")+ System.getProperty("line.separator");
+						tmpMsg += "For the free point of issue " + IssueID + " at line " + i;
+						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
+						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
+						tmp.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNum)-1);
+						tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						tmp.setAttribute("IssueID", IssueID);
+					}
+					IMarker marker = file.createMarker(MARKER_TYPE_FREE);
+					marker.setAttribute(IMarker.MESSAGE, mesg);
+					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()-1));
+					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue())-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue()-1);
+					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
 			}
