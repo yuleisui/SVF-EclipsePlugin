@@ -34,7 +34,6 @@ Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the ta
 * Create a new project and add existing code/project that is being tested to the project
 * Copy UAF.txt to the directory of the project
 * To activate the plugin, right click on the project name, and activate/deactive the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. 
-![Alt text](/Screenshots/Capture1.jpg?raw=true)
 
 2. Use UAF-Marker
 * UAF Marker should work right away. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it. 
