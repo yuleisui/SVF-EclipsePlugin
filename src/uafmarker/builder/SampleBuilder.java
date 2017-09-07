@@ -193,7 +193,8 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				
 				//4: file name
 				//file: ./benchmark/useCorrelation/uc5.c
-				String tmp[] = inputStream.readLine().split("/");
+				String tmpString = inputStream.readLine().replaceFirst("file: ", "");
+				String tmp[] = tmpString.split("/");
 				str = tmp[tmp.length -1]; //file name is last token
 				
 				if(toMark_UsePoint.get(str) == null)
@@ -235,7 +236,8 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				
 				//12: Free point file name
 				//file: ./benchmark/useCorrelation/uc5.c
-				tmp = inputStream.readLine().split("/");
+				tmpString = inputStream.readLine().replaceFirst("file: ", "");
+				tmp = tmpString.split("/");
 				str = tmp[tmp.length -1];
 				if(toMark_FreePoint.get(str) == null)
 					toMark_FreePoint.put(str, new ArrayList<Integer>());
