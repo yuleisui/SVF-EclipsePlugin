@@ -281,11 +281,21 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	//use info to mark stuff
 	void mark(IResource resource) {
 		if(!(resource instanceof IFile)) return;
+		
+		//if the UAF file has not been read yet
+		if(toMark_UsePoint == null) {
+			try {
+				readInputFromFile();
+			} catch (IOException | CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+		}
+		
 		IFile file = (IFile) resource;
 		deleteMarkers(file);
 
 		String fileName = resource.getName();//.getLocationURI().toString();
-		System.out.println(fileName);
 		
 		//use point marking
 		if(resource instanceof IFile && toMark_UsePoint.containsKey(fileName)){
@@ -392,3 +402,48 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 }
+
+//-------------------------------------------------------------------
+//DEBUGGING CODE - USE TO OUTPUT DEBUGGING INFO TO A FILE
+//-------------------------------------------------------------------
+//FOR IF THE OUTPUT FILE ALREADY EXIST
+//
+//IFile logFile = this.getProject().getFile("pluginLog.txt");
+//String logFileName = logFile.getLocation().toString();
+//File logFileFile = new File(logFileName);
+//if(!logFileFile.exists())
+//	return;
+//try {
+//	FileWriter fw = new FileWriter(logFileFile, true);
+//	BufferedWriter writer = new BufferedWriter(fw);
+//	if(fileName == null) {
+//		writer.write("Oh no file is null!"+ "\n");
+//	} else if (toMark_UsePoint == null) {
+//		writer.write("Ah ha!\n");
+//	}else if (toMark_UsePoint.containsKey(fileName)==false) {
+//		writer.write("Well theres your problem " + fileName + "\n");
+//	}else {
+//		writer.write("Now marking file " + fileName + "\n");
+//	}
+//	writer.close();
+//} catch (FileNotFoundException e1) {
+//	// TODO Auto-generated catch block
+//	e1.printStackTrace();
+//} catch (IOException e) {
+//	// TODO Auto-generated catch block
+//	e.printStackTrace();
+//}
+//
+//FOR IF THE OUTPUT FILE IS YET TO EXIST
+//
+//IProject project = getProject();
+//IFile logFile = project.getFile("pluginLog.txt");
+//
+//String contents = "Now marking " + fileName;
+//InputStream source = new ByteArrayInputStream(contents.getBytes());
+//try {
+//	logFile.create(source, false, null);
+//} catch (CoreException e1) {
+//	// TODO Auto-generated catch block
+//	e1.printStackTrace();
+//}

@@ -35,7 +35,6 @@ Each use-after-free corresponds to 15 lines in UAF.txt. The first line is the ta
 * Copy UAF.txt to the root directory of the project
 * To activate the plugin, right click on the project name, and activate/deactivate the plugin using the disable/enable Sample Builder option under the Configure option, as shown below. This has to be done for every project that the plugin is intended to run in. 
 ![alt text](/Screenshots/Capture1.JPG?raw=true "Screenshot 1")
-**Note**: First time activation of plugins may result in Eclipse throwing a workspace building error (Java Null Exception). If this happens just disable and enable it again to overcome the error. 
 
 2. Using UAF Markers
 * UAF Marker should work right away after activation. This can be checked by checking if markers are being placed in the workspace. If it doesn't work, refresh the project or force a build by changing a small part of the project and saving it, cleaning it, or disable and enable the plugin again. 
