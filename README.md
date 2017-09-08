@@ -5,7 +5,11 @@ This is an Eclipse Plugin for examining bugs reported by [SVF](https://github.co
 To confirm or fix a bug reported by detectors, one needs to first examine it. This process is usually difficult in large projects because a bug may involve multiple lines of code scattered in different files. To make this process easier, we implemented a tool called UAF-Marker for bug-detectors based on SVF. UAF-Marker, which is a simple Eclipse plugin, targets at use-after-free bugs. Specifically, it takes Eclipse as a code viewer and uses markers and colors to highlight the potential buggy code lines so that the user can clearly see the bugs.
 
 ## Installation
+### Fresh installation
 Copy from the plugins folder the jar file uafmarker_1.0.0.<version_number>.jar to your *eclipseCPP_installation_dir/dropins* directory.
+### Upgrading from a older version of the plugin
+Delete the current uafmarker jar file you have in your dropins directory, and repeat the same steps from the 'Fresh Installation' section above. 
+* **Note:** After upgrading the markers might not automatically upgrade to the ones produced by the new version of the plugin. If this occurs, just enable and disable the plugin (as specified under section 1 of 'Usage') a few times to get it to update to the new version. 
 
 ## Requirement
 To display the bugs found by detectors, UAF-Marker requires a file named UAF.txt as input for the plugin, placed in the root of the project directory (see **Usage** for more detailed instructions). The format of UAF.txt is as output by the SVF tool, as follows.
@@ -57,7 +61,7 @@ This view will help with the identification and classification of markers.
 
 ## Troubleshooting
 ### Marker are missing/at incorrect positions/not updating
-Try to refresh the project or force a build by changing a small part of the project and saving it, or by cleaning it and manually invoking build project. If that does not work, try to disable, then enable your the Simple Builder under the configure menu a few times. Otherwise, exit Eclipse and reinstall the plugin using the installation instructions above. If all fails,
+Try to disable, then enable your the Simple Builder under the configure menu a few times. If that does not work, try to refresh the project or force a build by changing a small part of the project and saving it, or by cleaning it and manually invoking build project. Otherwise, exit Eclipse and reinstall the plugin using the installation instructions above. If all fails,
 re-export the plugin using your own machine with the instructions below. 
 
 ### Disable/Enable option missing from Configure menu

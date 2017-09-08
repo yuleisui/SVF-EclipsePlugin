@@ -129,31 +129,85 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		// the visitor does the work.
 		delta.accept(new SampleDeltaVisitor());
 	}
+	
+	//MARKER OBJECTS AND FUNCTIONS
 
-	//MARKER LOGIC
-
-	private Map<String, ArrayList<Integer>> toMark_UsePoint; //filename 2 usepoint list
-	private Map<String, ArrayList<Integer>> toMark_FreePoint;//filename 2 freepoint list
-	private Map<String, String> use2free; //use 2 free
-	private Map<String, String> use2callString; //use 2 call string
-	private Map<String, String> use2argPos; //use 2 argument position
-	private Map<String, String> free2use; //free2use
-	private Map<String, String> free2callString; //free 2 call string
-	private Map<String, Integer> use2id;
-	private Map<String, Integer> free2id;
-
+	private class point {
+		private int pointID;
+		private String fileName;
+		private int lineNumber;
+		private String directory;
+		private String context;
+		
+		public int getPointID() {
+			return pointID;
+		}
+		public void setPointID(int pointID) {
+			this.pointID = pointID;
+		}
+		public String getFileName() {
+			return fileName;
+		}
+		public void setFileName(String fileName) {
+			this.fileName = fileName;
+		}
+		public int getLineNumber() {
+			return lineNumber;
+		}
+		public void setLineNumber(int lineNumber) {
+			this.lineNumber = lineNumber;
+		}
+		public String getDirectory() {
+			return directory;
+		}
+		public void setDirectory(String directory) {
+			this.directory = directory;
+		}
+		public String getContext() {
+			return context;
+		}
+		public void setContext(String context) {
+			this.context = context;
+		}
+	}
+	
+	private class UsePoint extends point {
+		private String argPos;
+		private FreePoint freePoint;
+		
+		public String getArgPos() {
+			return argPos;
+		}
+		public void setArgPos(String argPos) {
+			this.argPos = argPos;
+		}
+		public FreePoint getFreePoint() {
+			return freePoint;
+		}
+		public void setFreePoint(FreePoint freePoint) {
+			this.freePoint = freePoint;
+		}
+	}
+	
+	private class FreePoint extends point {
+		private UsePoint usePoint;
+		
+		public UsePoint getUsePoint() {
+			return usePoint;
+		}
+		public void setUsePoint(UsePoint usePoint) {
+			this.usePoint = usePoint;
+		}
+	}
+	
+	private Map<String, ArrayList<UsePoint>> usePointMap;
+	private Map<String, ArrayList<FreePoint>> freePointMap;
+	
 	//read the uaf txt
 	private void readInputFromFile() throws IOException, CoreException { // Hua
-		//set up maps
-		toMark_UsePoint = new HashMap<String, ArrayList<Integer> >();
-		toMark_FreePoint = new HashMap<String, ArrayList<Integer> >();
-		use2free = new HashMap<String, String>();
-		use2callString = new HashMap<String, String>();
-		use2argPos = new HashMap<String, String>();
-		free2use = new HashMap<String, String>();
-		free2callString = new HashMap<String, String>();
-		use2id = new HashMap<String, Integer>();
-		free2id = new HashMap<String, Integer>();
+		
+		usePointMap = new HashMap<String, ArrayList<UsePoint>>();
+		freePointMap = new HashMap<String, ArrayList<FreePoint>>();
 
 		//set up reader
 		BufferedReader inputStream = null;
@@ -162,6 +216,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			IFile ifile = this.getProject().getFile("UAF.txt");
 			String fileName = ifile.getLocation().toString();
 			File file = new File(fileName);
+			
 			if(!file.exists())
 				return;
 			inputStream = new BufferedReader(new FileReader(file));
@@ -182,7 +237,12 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				if(!str.contains("## Use_After_Free")) {
 					continue; 
 				}
-
+				
+				//-----------------------------------------------------------------------
+				//USE POINT
+				//-----------------------------------------------------------------------
+				UsePoint usePoint = new UsePoint();
+				usePoint.setPointID(issueID);
 				//2: Use point header 
 				//## Use....
 				inputStream.readLine(); 
@@ -190,83 +250,81 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				//3: line number
 				//line: 32
 				Integer lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""));
+				usePoint.setLineNumber(lineNum);
 				
 				//4: file name
 				//file: ./benchmark/useCorrelation/uc5.c
 				String tmpString = inputStream.readLine().replaceFirst("file: ", "");
 				String tmp[] = tmpString.split("/");
 				str = tmp[tmp.length -1]; //file name is last token
-				
-				if(toMark_UsePoint.get(str) == null)
+				usePoint.setFileName(str);
+								
+				if(usePointMap.get(str) == null)
 					//if file is not in the map yet, add to map
-					toMark_UsePoint.put(str, new ArrayList<Integer>());
-
+					usePointMap.put(str, new ArrayList<UsePoint>());
+				
 				// the value with the file name as the key is an array with the lines at which there are use points
-				toMark_UsePoint.get(str).add(lineNum);  
+				usePointMap.get(str).add(usePoint);
 
-				//unique identifier for this use point (eg: 32 : uc5.c)
-				String usePoint = "" + lineNum + " : " + str; //str here is the file name 
-				
-				String usePointInfo = str + ", line nuber: " + lineNum;
-				
 				//6: Directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", ""); //5 use point file directory
-				
-				usePointInfo = System.getProperty("line.separator") + usePointInfo + System.getProperty("line.separator")+"File Directory: " + str;
+				usePoint.setDirectory(str);
 
 				//7: Call Stack String
 				//CXT : ==>sch(ln: 32)  ==> $$$
 				String callString = inputStream.readLine().replaceFirst("CXT :", "");
-
-				use2callString.put(usePoint,  callString);
+				usePoint.setContext(callString);
 
 				//8: Argument Position (no idea what this means tbh)
 				//Arg Pos: -1
 				String argPos = inputStream.readLine().replaceFirst("Arg Pos: ", "");//argument position (if call or invoke, otherwise -1)
-				use2argPos.put(usePoint, argPos);
-
+				usePoint.setArgPos(argPos);
+				
 				//headers
 				inputStream.readLine();//9 ## Use....
+				//-----------------------------------------------------------------------
+				//END OF USE POINT
+				//-----------------------------------------------------------------------
+				
+				//-----------------------------------------------------------------------
+				//FREE POINT
+				//-----------------------------------------------------------------------
+				FreePoint freePoint = new FreePoint();
+				freePoint.setPointID(issueID);
 				inputStream.readLine();//10 ## Free....
 				
 				//11: Free point line number
 				//line: 5
 				lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""));//10 free point line num
+				freePoint.setLineNumber(lineNum);
 				
 				//12: Free point file name
 				//file: ./benchmark/useCorrelation/uc5.c
 				tmpString = inputStream.readLine().replaceFirst("file: ", "");
 				tmp = tmpString.split("/");
 				str = tmp[tmp.length -1];
-				if(toMark_FreePoint.get(str) == null)
-					toMark_FreePoint.put(str, new ArrayList<Integer>());
-				toMark_FreePoint.get(str).add(lineNum);
+				freePoint.setFileName(str);
 				
-				//free point unique identifier
-				String freePoint = lineNum + " : " + str;
-				
-				//free point information
-				String freePointInfo = str + ", line number: " + lineNum;
+				if(freePointMap.get(str) == null)
+					freePointMap.put(str, new ArrayList<FreePoint>());
+				freePointMap.get(str).add(freePoint);
 				
 				//13: Free point directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", "");//12 free point file directory
-				
-				freePointInfo = System.getProperty("line.separator") + freePointInfo + System.getProperty("line.separator")+"File Directory: " + str;
-				use2free.put(usePoint, freePointInfo);
-				free2use.put(freePoint,  usePointInfo);
+				freePoint.setDirectory(str);
 				
 				//14: free point call string
 				// ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
 				callString = inputStream.readLine().replaceFirst("CXT :", "");
-				free2callString.put(freePoint,  callString);
-				
+				freePoint.setContext(callString);
+
 				inputStream.readLine();//14 ## ## Free ############ }
 				inputStream.readLine();//15 ## ## Use_After_Free ## 1 ## }
 				
-				use2id.put(usePoint, issueID);
-				free2id.put(freePoint, issueID);
+				usePoint.setFreePoint(freePoint);
+				freePoint.setUsePoint(usePoint);
 				issueID++;
 			}
 		}catch (FileNotFoundException ex) {
@@ -283,11 +341,10 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		if(!(resource instanceof IFile)) return;
 		
 		//if the UAF file has not been read yet
-		if(toMark_UsePoint == null) {
+		if(usePointMap == null) {
 			try {
 				readInputFromFile();
 			} catch (IOException | CoreException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} 
 		}
@@ -298,31 +355,35 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		String fileName = resource.getName();//.getLocationURI().toString();
 		
 		//use point marking
-		if(resource instanceof IFile && toMark_UsePoint.containsKey(fileName)){
-			//deleteMarkers(file);
+		if(resource instanceof IFile && usePointMap.containsKey(fileName)){
 			try {
 				IDocumentProvider provider = new TextFileDocumentProvider();
 				provider.connect(file);
 				IDocument doc = provider.getDocument(file);
-				for(Integer i:toMark_UsePoint.get(fileName)){
-					int IssueID = use2id.get("" + i + " : " + fileName);
+				for(UsePoint i:usePointMap.get(fileName)){
+					int IssueID = i.getPointID();
+					int lineNumber = i.getLineNumber();
+					FreePoint thisFreePoint = i.getFreePoint();
 					
 					String mesg = "Use Point"+ System.getProperty("line.separator")+ System.getProperty("line.separator");
-					mesg = mesg + "Free Point at : ";
-					mesg = mesg + use2free.get("" + i + " : " + fileName) + System.getProperty("line.separator")+ System.getProperty("line.separator");
-					mesg = mesg + "Argument Position (for callInst): " + use2argPos.get("" + i + " : " + fileName) + System.getProperty("line.separator");
-					mesg = mesg + "CallString:" + System.getProperty("line.separator");
+					mesg = mesg + "Free Point at : " +  System.getProperty("line.separator");
+					mesg = mesg + thisFreePoint.getFileName() + ", line number: " + thisFreePoint.getLineNumber() +System.getProperty("line.separator"); 
+					mesg = mesg + "File directory: " + thisFreePoint.getDirectory() + System.getProperty("line.separator")+ System.getProperty("line.separator");
+					mesg = mesg + "Argument Position (for callInst): " + i.getArgPos() + System.getProperty("line.separator");
+					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					String[] callString = use2callString.get("" + i + " : " + fileName).split("==>");
+					String[] callString = i.getContext().split("==>");
 					for(int j = 0; j < callString.length; j++){
 						if(j == 0) continue;
 						
 						callString[j] = callString[j].trim();
 						
-						if(callString[j+1].contains("$$$"))
+						mesg = mesg + j + ": "+ callString[j];
+						if(callString[j+1].contains("$$$")) {
+							mesg = mesg + " (here)" + System.getProperty("line.separator");
 							break;
-						
-						mesg = mesg + j + ": "+ callString[j] + System.getProperty("line.separator");
+						}
+						mesg = mesg + System.getProperty("line.separator");
 						
 						String[] lineNumArry = callString[j].split(" ");
 						String line = lineNumArry[lineNumArry.length -1];
@@ -330,7 +391,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						
 						IMarker tmp = file.createMarker(MARKER_TYPE_USE_STRING);
 						String tmpMsg = "Use Point Call Stack " + j + System.getProperty("line.separator");
-						tmpMsg += "For the use point of issue " + IssueID + " at line " + i;
+						tmpMsg += "For the use point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
@@ -341,9 +402,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					IMarker marker = file.createMarker(MARKER_TYPE_USE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
 					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()-1));
-					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue())-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue()-1);
+					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNumber-1));
+					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNumber)-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber-1);
 					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
@@ -351,29 +412,35 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 		
 		//free point marking
-		if(resource instanceof IFile && toMark_FreePoint.containsKey(fileName)){
+		if(resource instanceof IFile && freePointMap.containsKey(fileName)){
 			//deleteMarkers(file);
 			try {
 				IDocumentProvider provider = new TextFileDocumentProvider();
 				provider.connect(file);
 				IDocument doc = provider.getDocument(file);
-				for(Integer i:toMark_FreePoint.get(fileName)){
-					int IssueID = free2id.get("" + i + " : " + fileName);
+				for(FreePoint i:freePointMap.get(fileName)){
+					int IssueID = i.getPointID();
+					int lineNumber = i.getLineNumber();
+					UsePoint thisUsePoint = i.getUsePoint();
 
 					String mesg = "Free Point"+ System.getProperty("line.separator")+ System.getProperty("line.separator");
-					mesg = mesg + "Use Point at : ";
-					mesg = mesg + free2use.get("" + i + " : " + fileName) + System.getProperty("line.separator")+ System.getProperty("line.separator");
-					mesg = mesg + "CallString:" + System.getProperty("line.separator");
+					mesg = mesg + "Use Point at : " + System.getProperty("line.separator");
+					mesg = mesg + thisUsePoint.getFileName() + ", line number: " + thisUsePoint.getLineNumber() +System.getProperty("line.separator"); 
+					mesg = mesg + "File directory: " + thisUsePoint.getDirectory() + System.getProperty("line.separator")+ System.getProperty("line.separator");
+					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					String[] callString = free2callString.get("" + i + " : " + fileName).split("==>");
+					String[] callString = i.getContext().split("==>");
 					for(int j = 0; j < callString.length; j++){
 						if(j == 0) continue;
 						
 						callString[j] = callString[j].trim();
-						if(callString[j+1].contains("$$$"))
-							break;
 						
-						mesg = mesg + j + ": "+ callString[j] + System.getProperty("line.separator");
+						mesg = mesg + j + ": "+ callString[j];
+						if(callString[j+1].contains("$$$")) {
+							mesg = mesg + " (here)" + System.getProperty("line.separator");
+							break;
+						}
+						mesg = mesg + System.getProperty("line.separator");
 						
 						String[] lineNumArry = callString[j].split(" ");
 						String line = lineNumArry[lineNumArry.length -1];
@@ -381,7 +448,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						
 						IMarker tmp = file.createMarker(MARKER_TYPE_FREE_STRING);
 						String tmpMsg = "Free Point Call Stack " + j + System.getProperty("line.separator");
-						tmpMsg += "For the free point of issue " + IssueID + " at line " + i;
+						tmpMsg += "For the free point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
@@ -392,9 +459,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					IMarker marker = file.createMarker(MARKER_TYPE_FREE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
 					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(i.intValue()-1));
-					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(i.intValue())-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, i.intValue()-1);
+					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNumber-1));
+					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNumber)-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber-1);
 					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
@@ -427,10 +494,10 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 //	}
 //	writer.close();
 //} catch (FileNotFoundException e1) {
-//	// TODO Auto-generated catch block
+//	
 //	e1.printStackTrace();
 //} catch (IOException e) {
-//	// TODO Auto-generated catch block
+//	
 //	e.printStackTrace();
 //}
 //
@@ -444,6 +511,6 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 //try {
 //	logFile.create(source, false, null);
 //} catch (CoreException e1) {
-//	// TODO Auto-generated catch block
+//	
 //	e1.printStackTrace();
 //}
