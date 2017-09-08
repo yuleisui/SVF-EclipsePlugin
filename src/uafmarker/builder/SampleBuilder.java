@@ -225,7 +225,6 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			int issueID = 1;
 			
 			//for each line in UAF.txt (loop for each UAF instance)
-			//read the first line here
 			//1: ## Use_After_Free ## ....
 			while ((str = inputStream.readLine()) != null) {
 				//no warning issued
@@ -243,6 +242,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				//-----------------------------------------------------------------------
 				UsePoint usePoint = new UsePoint();
 				usePoint.setPointID(issueID);
+				
 				//2: Use point header 
 				//## Use....
 				inputStream.readLine(); 
@@ -262,27 +262,25 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				if(usePointMap.get(str) == null)
 					//if file is not in the map yet, add to map
 					usePointMap.put(str, new ArrayList<UsePoint>());
-				
-				// the value with the file name as the key is an array with the lines at which there are use points
 				usePointMap.get(str).add(usePoint);
 
-				//6: Directory
+				//5: Directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", ""); //5 use point file directory
 				usePoint.setDirectory(str);
 
-				//7: Call Stack String
+				//6: Call Stack String
 				//CXT : ==>sch(ln: 32)  ==> $$$
-				String callString = inputStream.readLine().replaceFirst("CXT :", "");
-				usePoint.setContext(callString);
+				str = inputStream.readLine().replaceFirst("CXT :", "");
+				usePoint.setContext(str);
 
-				//8: Argument Position (no idea what this means tbh)
+				//7: Argument Position (no idea what this means tbh)
 				//Arg Pos: -1
-				String argPos = inputStream.readLine().replaceFirst("Arg Pos: ", "");//argument position (if call or invoke, otherwise -1)
-				usePoint.setArgPos(argPos);
+				str = inputStream.readLine().replaceFirst("Arg Pos: ", "");//argument position (if call or invoke, otherwise -1)
+				usePoint.setArgPos(str);
 				
 				//headers
-				inputStream.readLine();//9 ## Use....
+				inputStream.readLine();//8 ## Use....
 				//-----------------------------------------------------------------------
 				//END OF USE POINT
 				//-----------------------------------------------------------------------
@@ -292,14 +290,15 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				//-----------------------------------------------------------------------
 				FreePoint freePoint = new FreePoint();
 				freePoint.setPointID(issueID);
-				inputStream.readLine();//10 ## Free....
 				
-				//11: Free point line number
+				inputStream.readLine();//9 ## Free....
+				
+				//10: Free point line number
 				//line: 5
 				lineNum = Integer.valueOf(inputStream.readLine().replaceFirst("line: ", ""));//10 free point line num
 				freePoint.setLineNumber(lineNum);
 				
-				//12: Free point file name
+				//11: Free point file name
 				//file: ./benchmark/useCorrelation/uc5.c
 				tmpString = inputStream.readLine().replaceFirst("file: ", "");
 				tmp = tmpString.split("/");
@@ -310,18 +309,21 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					freePointMap.put(str, new ArrayList<FreePoint>());
 				freePointMap.get(str).add(freePoint);
 				
-				//13: Free point directory
+				//12: Free point directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", "");//12 free point file directory
 				freePoint.setDirectory(str);
 				
-				//14: free point call string
+				//13: free point call string
 				// ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
-				callString = inputStream.readLine().replaceFirst("CXT :", "");
-				freePoint.setContext(callString);
+				str = inputStream.readLine().replaceFirst("CXT :", "");
+				freePoint.setContext(str);
 
 				inputStream.readLine();//14 ## ## Free ############ }
 				inputStream.readLine();//15 ## ## Use_After_Free ## 1 ## }
+				//-----------------------------------------------------------------------
+				//END OF FREE POINT
+				//-----------------------------------------------------------------------
 				
 				usePoint.setFreePoint(freePoint);
 				freePoint.setUsePoint(usePoint);
@@ -352,7 +354,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		IFile file = (IFile) resource;
 		deleteMarkers(file);
 
-		String fileName = resource.getName();//.getLocationURI().toString();
+		String fileName = resource.getName();
 		
 		//use point marking
 		if(resource instanceof IFile && usePointMap.containsKey(fileName)){
