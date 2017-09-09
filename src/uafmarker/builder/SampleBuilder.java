@@ -5,9 +5,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -132,12 +138,37 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	
 	//MARKER OBJECTS AND FUNCTIONS
 
+	private class contextPoint {
+		private String fileName;
+		private int lineNumber;
+		private String functionName;
+		
+		public contextPoint(String fileName, int lineNumber, String functionName) {
+			this.fileName = fileName;
+			this.lineNumber = lineNumber;
+			this.functionName = functionName;
+		}
+		
+		public String getFileName() {
+			return fileName;
+		}
+		public int getLineNumber() {
+			return lineNumber;
+		}
+		public String getFunctionName() {
+			return functionName;
+		}
+	}
 	private class point {
 		private int pointID;
 		private String fileName;
 		private int lineNumber;
 		private String directory;
-		private String context;
+		private ArrayList<contextPoint> contextPoint;
+		
+		public point () {
+			contextPoint = new ArrayList<contextPoint>();
+		}
 		
 		public int getPointID() {
 			return pointID;
@@ -163,17 +194,18 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		public void setDirectory(String directory) {
 			this.directory = directory;
 		}
-		public String getContext() {
-			return context;
-		}
-		public void setContext(String context) {
-			this.context = context;
+		public ArrayList<contextPoint> getContextPoint() {
+			return contextPoint;
 		}
 	}
 	
 	private class UsePoint extends point {
 		private String argPos;
 		private FreePoint freePoint;
+		
+		public UsePoint() {
+			super();
+		}
 		
 		public String getArgPos() {
 			return argPos;
@@ -192,6 +224,10 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	private class FreePoint extends point {
 		private UsePoint usePoint;
 		
+		public FreePoint() {
+			super();
+		}
+		
 		public UsePoint getUsePoint() {
 			return usePoint;
 		}
@@ -202,12 +238,16 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	
 	private Map<String, ArrayList<UsePoint>> usePointMap;
 	private Map<String, ArrayList<FreePoint>> freePointMap;
+	private Map<String, String> fileStreams;
+	private boolean streamMapSet;
 	
 	//read the uaf txt
 	private void readInputFromFile() throws IOException, CoreException { // Hua
 		
 		usePointMap = new HashMap<String, ArrayList<UsePoint>>();
 		freePointMap = new HashMap<String, ArrayList<FreePoint>>();
+		fileStreams = new HashMap<String, String>();
+		streamMapSet = false;
 
 		//set up reader
 		BufferedReader inputStream = null;
@@ -256,14 +296,18 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				//file: ./benchmark/useCorrelation/uc5.c
 				String tmpString = inputStream.readLine().replaceFirst("file: ", "");
 				String tmp[] = tmpString.split("/");
-				str = tmp[tmp.length -1]; //file name is last token
-				usePoint.setFileName(str);
+				String thisFName = tmp[tmp.length -1]; //file name is last token
+				usePoint.setFileName(thisFName);
 								
-				if(usePointMap.get(str) == null)
+				if(usePointMap.get(thisFName) == null)
 					//if file is not in the map yet, add to map
-					usePointMap.put(str, new ArrayList<UsePoint>());
-				usePointMap.get(str).add(usePoint);
-
+					usePointMap.put(thisFName, new ArrayList<UsePoint>());
+				usePointMap.get(thisFName).add(usePoint);
+				
+				if(!fileStreams.containsKey(thisFName)) {
+					makeStream(this.getProject().getFile(thisFName));
+				}
+				
 				//5: Directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
 				str = inputStream.readLine().replaceFirst("dir : ", ""); //5 use point file directory
@@ -271,8 +315,41 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 
 				//6: Call Stack String
 				//CXT : ==>sch(ln: 32)  ==> $$$
-				str = inputStream.readLine().replaceFirst("CXT :", "");
-				usePoint.setContext(str);
+				String callString[] = inputStream.readLine().replaceFirst("CXT :", "").split("==>");
+				for(int j = 0; j < callString.length; j++){
+					if(j == 0) continue;
+					
+					callString[j] = callString[j].trim();
+					
+					String[] callStrArry = callString[j].split(" ");
+					String functionName = callStrArry[0].replace("(ln:", "");
+					String stackFileName = "";
+					if (!functionExist(functionName, fileStreams.get(thisFName))) {
+						if(!streamMapSet) {
+							setupStreams(this.getProject());
+							streamMapSet = true;
+						}
+						for(Map.Entry<String, String> entry: fileStreams.entrySet()) {
+							if(!entry.getKey().equals(thisFName)) {
+								if(functionExist(functionName, entry.getValue())) {
+									stackFileName = entry.getKey();
+									break;
+								}
+							}
+						}
+					} else {
+						stackFileName = thisFName;
+					}
+										
+					String line = callStrArry[callStrArry.length -1];
+					int stackLineNumber = Integer.parseInt(line.replaceAll("\\D+",""));
+					
+					usePoint.getContextPoint().add(new contextPoint(stackFileName, stackLineNumber, functionName));
+					
+					if(callString[j+1].contains("$$$")) {
+						break;
+					}
+				}
 
 				//7: Argument Position (no idea what this means tbh)
 				//Arg Pos: -1
@@ -302,12 +379,16 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				//file: ./benchmark/useCorrelation/uc5.c
 				tmpString = inputStream.readLine().replaceFirst("file: ", "");
 				tmp = tmpString.split("/");
-				str = tmp[tmp.length -1];
-				freePoint.setFileName(str);
+				thisFName = tmp[tmp.length -1];
+				freePoint.setFileName(thisFName);
 				
-				if(freePointMap.get(str) == null)
-					freePointMap.put(str, new ArrayList<FreePoint>());
-				freePointMap.get(str).add(freePoint);
+				if(freePointMap.get(thisFName) == null)
+					freePointMap.put(thisFName, new ArrayList<FreePoint>());
+				freePointMap.get(thisFName).add(freePoint);
+				
+				if(!fileStreams.containsKey(thisFName)) {
+					makeStream(this.getProject().getFile(thisFName));
+				}
 				
 				//12: Free point directory
 				//dir : /home/stc/stc/test/testMicroBenchmark
@@ -316,8 +397,41 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 				
 				//13: free point call string
 				// ## CXT : ==>sch(ln: 29) ==>f(ln: 5)  ==> $$$
-				str = inputStream.readLine().replaceFirst("CXT :", "");
-				freePoint.setContext(str);
+				callString = inputStream.readLine().replaceFirst("CXT :", "").split("==>");
+				for(int j = 0; j < callString.length; j++){
+					if(j == 0) continue;
+					
+					callString[j] = callString[j].trim();
+					
+					String[] callStrArry = callString[j].split(" ");
+					String functionName = callStrArry[0].replace("(ln:", "");
+					String stackFileName = "";
+					if (!functionExist(functionName, fileStreams.get(thisFName))) {
+						if(!streamMapSet) {
+							setupStreams(this.getProject());
+							streamMapSet = true;
+						}
+						for(Map.Entry<String, String> entry: fileStreams.entrySet()) {
+							if(!entry.getKey().equals(thisFName)) {
+								if(functionExist(functionName, entry.getValue())) {
+									stackFileName = entry.getKey();
+									break;
+								}
+							}
+						}
+					} else {
+						stackFileName = thisFName;
+					}
+										
+					String line = callStrArry[callStrArry.length -1];
+					int stackLineNumber = Integer.parseInt(line.replaceAll("\\D+",""));
+					
+					freePoint.getContextPoint().add(new contextPoint(stackFileName, stackLineNumber, functionName));
+					
+					if(callString[j+1].contains("$$$")) {
+						break;
+					}
+				}
 
 				inputStream.readLine();//14 ## ## Free ############ }
 				inputStream.readLine();//15 ## ## Use_After_Free ## 1 ## }
@@ -374,32 +488,35 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					mesg = mesg + "Argument Position (for callInst): " + i.getArgPos() + System.getProperty("line.separator");
 					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					String[] callString = i.getContext().split("==>");
-					for(int j = 0; j < callString.length; j++){
-						if(j == 0) continue;
+					int j = 1;
+					for(contextPoint c: i.getContextPoint()){
+						String functionName = c.getFunctionName();
+						String stackFileName = c.getFileName();
+						int lineNum = c.getLineNumber();
 						
-						callString[j] = callString[j].trim();
-						
-						mesg = mesg + j + ": "+ callString[j];
-						if(callString[j+1].contains("$$$")) {
-							mesg = mesg + " (here)" + System.getProperty("line.separator");
-							break;
-						}
+						mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
 						mesg = mesg + System.getProperty("line.separator");
 						
-						String[] lineNumArry = callString[j].split(" ");
-						String line = lineNumArry[lineNumArry.length -1];
-						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
-						
-						IMarker tmp = file.createMarker(MARKER_TYPE_USE_STRING);
+						IFile stackFile = file;
+						IDocument stackDoc = doc;
+						if(!(stackFileName.equals("") || stackFileName.equals(file.getName()))) {
+							stackFile = this.getProject().getFile(stackFileName); 
+							IDocumentProvider tmpprovider = new TextFileDocumentProvider();
+							tmpprovider.connect(stackFile);
+							stackDoc = tmpprovider.getDocument(stackFile);
+						}
+						IMarker tmp = stackFile.createMarker(MARKER_TYPE_USE_STRING);
 						String tmpMsg = "Use Point Call Stack " + j + System.getProperty("line.separator");
 						tmpMsg += "For the use point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
-						tmp.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNum)-1);
-						tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						if(!stackFileName.equals("")) {
+							tmp.setAttribute(IMarker.CHAR_START, stackDoc.getLineOffset(lineNum-1));
+							tmp.setAttribute(IMarker.CHAR_END, stackDoc.getLineOffset(lineNum)-1);
+							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						}
 						tmp.setAttribute("IssueID", IssueID);
+						j++;
 					}
 					IMarker marker = file.createMarker(MARKER_TYPE_USE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
@@ -431,32 +548,35 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					mesg = mesg + "File directory: " + thisUsePoint.getDirectory() + System.getProperty("line.separator")+ System.getProperty("line.separator");
 					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					String[] callString = i.getContext().split("==>");
-					for(int j = 0; j < callString.length; j++){
-						if(j == 0) continue;
+					int j = 1;
+					for(contextPoint c: i.getContextPoint()){
+						String functionName = c.getFunctionName();
+						String stackFileName = c.getFileName();
+						int lineNum = c.getLineNumber();
 						
-						callString[j] = callString[j].trim();
-						
-						mesg = mesg + j + ": "+ callString[j];
-						if(callString[j+1].contains("$$$")) {
-							mesg = mesg + " (here)" + System.getProperty("line.separator");
-							break;
-						}
+						mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
 						mesg = mesg + System.getProperty("line.separator");
 						
-						String[] lineNumArry = callString[j].split(" ");
-						String line = lineNumArry[lineNumArry.length -1];
-						int lineNum = Integer.parseInt(line.replaceAll("\\D+",""));
-						
-						IMarker tmp = file.createMarker(MARKER_TYPE_FREE_STRING);
+						IFile stackFile = file;
+						IDocument stackDoc = doc;
+						if(!(stackFileName.equals("") || stackFileName.equals(file.getName()))) {
+							stackFile = this.getProject().getFile(stackFileName); 
+							IDocumentProvider tmpprovider = new TextFileDocumentProvider();
+							tmpprovider.connect(stackFile);
+							stackDoc = tmpprovider.getDocument(stackFile);
+						}
+						IMarker tmp = stackFile.createMarker(MARKER_TYPE_USE_STRING);
 						String tmpMsg = "Free Point Call Stack " + j + System.getProperty("line.separator");
 						tmpMsg += "For the free point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-						tmp.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNum-1));
-						tmp.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNum)-1);
-						tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						if(!stackFileName.equals("")) {
+							tmp.setAttribute(IMarker.CHAR_START, stackDoc.getLineOffset(lineNum-1));
+							tmp.setAttribute(IMarker.CHAR_END, stackDoc.getLineOffset(lineNum)-1);
+							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+						}
 						tmp.setAttribute("IssueID", IssueID);
+						j++;
 					}
 					IMarker marker = file.createMarker(MARKER_TYPE_FREE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
@@ -467,6 +587,51 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
+			}
+		}
+	}
+	
+	boolean functionExist(String functionName, String fileStream) {
+		Pattern pattern = Pattern.compile(""+functionName+"\\s*\\({1}[^\\)]*\\){1}\\s*\\{");
+		return pattern.matcher(fileStream).find();
+	}
+	
+	void setupStreams (IContainer container) {
+		IResource[] members;
+		try {
+			members = container.members();
+			for (IResource member : members)
+			{
+				if (member instanceof IContainer) 
+				{
+					setupStreams((IContainer)member);
+				}
+				else if (member instanceof IFile)
+				{
+					makeStream(member);
+				}
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	void makeStream(IResource member) {
+		String fileEx = member.getFileExtension();
+		if(fileEx.equals("c") || fileEx.equals("cpp")) {
+			String fileName = member.getName();
+			if(!fileStreams.containsKey(fileName)) {
+				Stream<String> stream;
+				try {
+					stream = Files.lines(Paths.get(member.getLocation().toString()));
+					StringBuilder b = new StringBuilder();
+					stream.forEach(b::append);
+					String str = b.toString();
+					fileStreams.put(fileName, str);
+					stream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
