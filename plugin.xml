@@ -101,7 +101,7 @@
             type="org.eclipse.core.resources.problemmarker">
       </super>
       <persistent
-            value="true">
+            value="false">
       </persistent>
    </extension>
    <extension
@@ -112,7 +112,7 @@
             type="org.eclipse.core.resources.problemmarker">
       </super>
       <persistent
-            value="true">
+            value="false">
       </persistent>
    </extension>
    <extension
@@ -123,7 +123,7 @@
             type="org.eclipse.core.resources.problemmarker">
       </super>
       <persistent
-            value="true">
+            value="false">
       </persistent>
    </extension>
    <extension
@@ -134,7 +134,7 @@
             type="org.eclipse.core.resources.problemmarker">
       </super>
       <persistent
-            value="true">
+            value="false">
       </persistent>
    </extension>
    <extension

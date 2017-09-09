@@ -1,10 +1,12 @@
 package uafmarker.builder;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -488,13 +490,22 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					mesg = mesg + "Argument Position (for callInst): " + i.getArgPos() + System.getProperty("line.separator");
 					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					int j = 1;
-					for(contextPoint c: i.getContextPoint()){
+					for(int k = 0; k < i.getContextPoint().size(); k++) {
+						int j = k+1;
+						contextPoint c = i.getContextPoint().get(k);
 						String functionName = c.getFunctionName();
 						String stackFileName = c.getFileName();
 						int lineNum = c.getLineNumber();
 						
-						mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
+						if(stackFileName.equals("")) {
+							mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + "), location not found";
+						} else {
+							mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
+						}
+						if(k+1 == i.getContextPoint().size()) {
+							mesg += " (here)" + System.getProperty("line.separator");
+							break;
+						}
 						mesg = mesg + System.getProperty("line.separator");
 						
 						IFile stackFile = file;
@@ -506,8 +517,11 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 							stackDoc = tmpprovider.getDocument(stackFile);
 						}
 						IMarker tmp = stackFile.createMarker(MARKER_TYPE_USE_STRING);
-						String tmpMsg = "Use Point Call Stack " + j + System.getProperty("line.separator");
-						tmpMsg += "For the use point of issue " + IssueID + " at line " + lineNumber;
+						String tmpMsg = "Use Point Call Stack " + j;
+						if(stackFileName.equals("")) {
+							tmpMsg += " (location not found)";
+						}
+						tmpMsg += System.getProperty("line.separator") + System.getProperty("line.separator") + "For the use point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 						if(!stackFileName.equals("")) {
@@ -516,7 +530,6 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
 						}
 						tmp.setAttribute("IssueID", IssueID);
-						j++;
 					}
 					IMarker marker = file.createMarker(MARKER_TYPE_USE);
 					marker.setAttribute(IMarker.MESSAGE, mesg);
@@ -548,13 +561,22 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					mesg = mesg + "File directory: " + thisUsePoint.getDirectory() + System.getProperty("line.separator")+ System.getProperty("line.separator");
 					mesg = mesg + "Call Stack:" + System.getProperty("line.separator");
 					
-					int j = 1;
-					for(contextPoint c: i.getContextPoint()){
+					for(int k = 0; k < i.getContextPoint().size(); k++) {
+						int j = k+1;
+						contextPoint c = i.getContextPoint().get(k);
 						String functionName = c.getFunctionName();
 						String stackFileName = c.getFileName();
 						int lineNum = c.getLineNumber();
 						
-						mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
+						if(stackFileName.equals("")) {
+							mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + "), location not found";
+						} else {
+							mesg = mesg + j + ": "+ functionName + "(ln: " + lineNum + ") in file " + stackFileName;
+						}
+						if(k+1 == i.getContextPoint().size()) {
+							mesg += " (here)" + System.getProperty("line.separator");
+							break;
+						}
 						mesg = mesg + System.getProperty("line.separator");
 						
 						IFile stackFile = file;
@@ -565,9 +587,12 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 							tmpprovider.connect(stackFile);
 							stackDoc = tmpprovider.getDocument(stackFile);
 						}
-						IMarker tmp = stackFile.createMarker(MARKER_TYPE_USE_STRING);
-						String tmpMsg = "Free Point Call Stack " + j + System.getProperty("line.separator");
-						tmpMsg += "For the free point of issue " + IssueID + " at line " + lineNumber;
+						IMarker tmp = stackFile.createMarker(MARKER_TYPE_FREE_STRING);
+						String tmpMsg = "Free Point Call Stack " + j;
+						if(stackFileName.equals("")) {
+							tmpMsg += " (location not found)";
+						}
+						tmpMsg += System.getProperty("line.separator") + System.getProperty("line.separator") + "For the free point of issue " + IssueID + " at line " + lineNumber;
 						tmp.setAttribute(IMarker.MESSAGE, tmpMsg);
 						tmp.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 						if(!stackFileName.equals("")) {
@@ -618,6 +643,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	
 	void makeStream(IResource member) {
 		String fileEx = member.getFileExtension();
+		if(fileEx==null) return;
 		if(fileEx.equals("c") || fileEx.equals("cpp")) {
 			String fileName = member.getName();
 			if(!fileStreams.containsKey(fileName)) {
