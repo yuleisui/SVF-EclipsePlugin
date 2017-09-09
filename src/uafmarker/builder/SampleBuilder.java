@@ -1,12 +1,10 @@
 package uafmarker.builder;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -93,10 +91,10 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			fullBuild(monitor);
 		} else {
 			IResourceDelta delta = getDelta(getProject());
-			if (delta == null) {
-				fullBuild(monitor);
+			if (delta == null || usePointMap==null) { //usePointMap is null when starting, here forcing a full build of everything at startup
+				fullBuild(monitor);						//not sure why startup wont automatically call here
 			} else {
-				incrementalBuild(delta, monitor);
+				incrementalBuild(delta, monitor);		//but calls here instead? lol
 			}
 		}
 		return null;
@@ -161,6 +159,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 			return functionName;
 		}
 	}
+	
 	private class point {
 		private int pointID;
 		private String fileName;
@@ -455,18 +454,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	}	
 
 	//use info to mark stuff
-	void mark(IResource resource) {
+	void mark(IResource resource) {		
 		if(!(resource instanceof IFile)) return;
-		
-		//if the UAF file has not been read yet
-		if(usePointMap == null) {
-			try {
-				readInputFromFile();
-			} catch (IOException | CoreException e) {
-				e.printStackTrace();
-			} 
-		}
-		
+
 		IFile file = (IFile) resource;
 		deleteMarkers(file);
 
@@ -662,48 +652,3 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 }
-
-//-------------------------------------------------------------------
-//DEBUGGING CODE - USE TO OUTPUT DEBUGGING INFO TO A FILE
-//-------------------------------------------------------------------
-//FOR IF THE OUTPUT FILE ALREADY EXIST
-//
-//IFile logFile = this.getProject().getFile("pluginLog.txt");
-//String logFileName = logFile.getLocation().toString();
-//File logFileFile = new File(logFileName);
-//if(!logFileFile.exists())
-//	return;
-//try {
-//	FileWriter fw = new FileWriter(logFileFile, true);
-//	BufferedWriter writer = new BufferedWriter(fw);
-//	if(fileName == null) {
-//		writer.write("Oh no file is null!"+ "\n");
-//	} else if (toMark_UsePoint == null) {
-//		writer.write("Ah ha!\n");
-//	}else if (toMark_UsePoint.containsKey(fileName)==false) {
-//		writer.write("Well theres your problem " + fileName + "\n");
-//	}else {
-//		writer.write("Now marking file " + fileName + "\n");
-//	}
-//	writer.close();
-//} catch (FileNotFoundException e1) {
-//	
-//	e1.printStackTrace();
-//} catch (IOException e) {
-//	
-//	e.printStackTrace();
-//}
-//
-//FOR IF THE OUTPUT FILE IS YET TO EXIST
-//
-//IProject project = getProject();
-//IFile logFile = project.getFile("pluginLog.txt");
-//
-//String contents = "Now marking " + fileName;
-//InputStream source = new ByteArrayInputStream(contents.getBytes());
-//try {
-//	logFile.create(source, false, null);
-//} catch (CoreException e1) {
-//	
-//	e1.printStackTrace();
-//}

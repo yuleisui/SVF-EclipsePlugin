@@ -1,0 +1,46 @@
+//-------------------------------------------------------------------
+//DEBUGGING CODE - USE TO OUTPUT DEBUGGING INFO TO A FILE
+//-------------------------------------------------------------------
+//FOR IF THE OUTPUT FILE ALREADY EXIST
+//
+//File logFileFile = new File("C:\\Users\\Kai Yang\\workspace\\TestStuff\\log.txt");
+//
+//IFile logFile = this.getProject().getFile("pluginLog.txt");
+//String logFileName = logFile.getLocation().toString();
+//File logFileFile = new File(logFileName);
+//if(!logFileFile.exists())
+//	return;
+//try {
+//	FileWriter fw = new FileWriter(logFileFile, true);
+//	BufferedWriter writer = new BufferedWriter(fw);
+//	if(fileName == null) {
+//		writer.write("Oh no file is null!"+ "\n");
+//	} else if (toMark_UsePoint == null) {
+//		writer.write("Ah ha!\n");
+//	}else if (toMark_UsePoint.containsKey(fileName)==false) {
+//		writer.write("Well theres your problem " + fileName + "\n");
+//	}else {
+//		writer.write("Now marking file " + fileName + "\n");
+//	}
+//	writer.close();
+//} catch (FileNotFoundException e1) {
+//	
+//	e1.printStackTrace();
+//} catch (IOException e) {
+//	
+//	e.printStackTrace();
+//}
+//
+//FOR IF THE OUTPUT FILE IS YET TO EXIST
+//
+//IProject project = getProject();
+//IFile logFile = project.getFile("pluginLog.txt");
+//
+//String contents = "Now marking " + fileName;
+//InputStream source = new ByteArrayInputStream(contents.getBytes());
+//try {
+//	logFile.create(source, false, null);
+//} catch (CoreException e1) {
+//	
+//	e1.printStackTrace();
+//}
