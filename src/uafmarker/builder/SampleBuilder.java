@@ -239,6 +239,9 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 	
 	private Map<String, ArrayList<UsePoint>> usePointMap;
 	private Map<String, ArrayList<FreePoint>> freePointMap;
+	/**
+	 * A map, with the file name as the key and the content of the file (as a string) as the value
+	 */
 	private Map<String, String> fileStreams;
 	private boolean streamMapSet;
 	
@@ -606,11 +609,25 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 	
+	/**
+	 * This function checks a file stream (not really a stream, more like a string that contains the file content)
+	 * and then returns true if the function definition is in the file
+	 * 
+	 * @param functionName
+	 * @param fileStream the content of the file
+	 * @return true if function exist in file, false otherwise
+	 */
 	boolean functionExist(String functionName, String fileStream) {
 		Pattern pattern = Pattern.compile(""+functionName+"\\s*\\({1}[^\\)]*\\){1}\\s*\\{");
 		return pattern.matcher(fileStream).find();
 	}
 	
+	/**
+	 * Sets up all the file streams that have yet to be set up in this project by calling setupStreams()
+	 * on all the files in this project. Iterates through all folders too. 
+	 * 
+	 * @param container
+	 */
 	void setupStreams (IContainer container) {
 		IResource[] members;
 		try {
@@ -631,6 +648,12 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 		}
 	}
 	
+	/**
+	 * For the file member, checks if it is a c or cpp file, then adds it's content to the 
+	 * fileStreams map if it is not already in the map
+	 * 
+	 * @param member
+	 */
 	void makeStream(IResource member) {
 		String fileEx = member.getFileExtension();
 		if(fileEx==null) return;
