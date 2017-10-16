@@ -1,10 +1,12 @@
 # SVF-EclipsePlugin
 
-[![SVF-EclipsePlugin Introduction video](http://img.youtube.com/vi/9Wkq1P4HxD8/0.jpg)](https://youtu.be/9Wkq1P4HxD8)
-
 This is an Eclipse Plugin for examining bugs reported by [SVF](https://github.com/unsw-corg/SVF/)-based detectors.
 
 To confirm or fix a bug reported by detectors, one needs to first examine it. This process is usually difficult in large projects because a bug may involve multiple lines of code scattered in different files. To make this process easier, we implemented a tool called UAF-Marker for bug-detectors based on SVF. UAF-Marker, which is a simple Eclipse plugin, targets at use-after-free bugs. Specifically, it takes Eclipse as a code viewer and uses markers and colors to highlight the potential buggy code lines so that the user can clearly see the bugs.
+### Introduction Video
+<div style="text-align:center"><a href="https://www.youtube.com/watch?feature=player_embedded&v=9Wkq1P4HxD8
+" target="_blank"><img src="http://img.youtube.com/vi/9Wkq1P4HxD8/0.jpg" 
+alt="IMAGE ALT TEXT HERE" height="400px" padding="30px"/></a></div>
 
 ## Installation
 This plugin requires Java 8 to run. Install Java 8 first before continuing with the steps below. 
