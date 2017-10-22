@@ -520,7 +520,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						if(!stackFileName.equals("")) {
 							tmp.setAttribute(IMarker.CHAR_START, stackDoc.getLineOffset(lineNum-1));
 							tmp.setAttribute(IMarker.CHAR_END, stackDoc.getLineOffset(lineNum)-1);
-							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum);
 						}
 						tmp.setAttribute("IssueID", IssueID);
 					}
@@ -529,7 +529,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNumber-1));
 					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNumber)-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
 					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
@@ -591,7 +591,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 						if(!stackFileName.equals("")) {
 							tmp.setAttribute(IMarker.CHAR_START, stackDoc.getLineOffset(lineNum-1));
 							tmp.setAttribute(IMarker.CHAR_END, stackDoc.getLineOffset(lineNum)-1);
-							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum-1);
+							tmp.setAttribute(IMarker.LINE_NUMBER, lineNum);
 						}
 						tmp.setAttribute("IssueID", IssueID);
 						j++;
@@ -601,7 +601,7 @@ public class SampleBuilder extends IncrementalProjectBuilder {
 					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 					marker.setAttribute(IMarker.CHAR_START, doc.getLineOffset(lineNumber-1));
 					marker.setAttribute(IMarker.CHAR_END, doc.getLineOffset(lineNumber)-1);
-					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber-1);
+					marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
 					marker.setAttribute("IssueID", IssueID);
 				}
 			} catch (CoreException | BadLocationException e) {
